@@ -1,48 +1,59 @@
 .button {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   display: inline-flex;
-  font-size: 0.94rem;
-  font-weight: 700;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
   gap: 0.5rem;
   justify-content: center;
-  min-height: 3rem;
-  padding: 0.88rem 1.22rem;
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    border-color 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease;
-}
-
-.button:hover:not(:disabled) {
-  transform: translateY(-1px);
+  padding: 0.85rem 1.25rem;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease,
+    box-shadow 160ms ease, transform 120ms ease;
 }
 
 .button:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
-.primary {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
-  box-shadow: 0 18px 28px rgba(230, 74, 25, 0.2);
-  color: white;
-}
-
-.secondary {
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(31, 41, 55, 0.08);
-  color: var(--color-text);
-}
-
-.ghost {
-  background: rgba(255, 255, 255, 0.45);
-  border-color: rgba(255, 107, 0, 0.2);
-  color: var(--color-accent-strong);
+.button:not(:disabled):active {
+  transform: translateY(1px);
 }
 
 .fullWidth {
   width: 100%;
+}
+
+.primary {
+  background: linear-gradient(135deg, #5b8def 0%, var(--color-primary) 60%, var(--color-primary-strong) 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(31, 95, 214, 0.22);
+}
+
+.primary:not(:disabled):hover {
+  box-shadow: 0 16px 30px rgba(31, 95, 214, 0.28);
+  transform: translateY(-1px);
+}
+
+.secondary {
+  background: linear-gradient(135deg, #d76b8a 0%, var(--color-pink) 70%, var(--color-pink-strong) 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(196, 69, 105, 0.22);
+}
+
+.secondary:not(:disabled):hover {
+  box-shadow: 0 16px 30px rgba(196, 69, 105, 0.28);
+  transform: translateY(-1px);
+}
+
+.ghost {
+  background: var(--color-surface);
+  border-color: var(--color-line-strong);
+  color: var(--color-text);
+}
+
+.ghost:not(:disabled):hover {
+  background: var(--color-surface-soft);
+  border-color: var(--color-text-muted);
 }

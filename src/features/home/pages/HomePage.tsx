@@ -1,214 +1,130 @@
-import { useEffect, useState } from 'react'
-import { env } from '@/shared/config/env'
+import { useState } from 'react'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
-import { PageHeader } from '@/shared/ui/PageHeader/PageHeader'
-import { FeatureCard } from '../components/FeatureCard'
-import { checkBackendHealth } from '../services/healthService'
+import { Icon } from '@/shared/ui/Icon/Icon'
+import { Button } from '@/shared/ui/Button/Button'
+import { HeroBanner } from '../components/HeroBanner'
+import { FavoritesSection } from '../components/FavoritesSection'
+import { GuidesSection } from '../components/GuidesSection'
+import { DecidePanel } from '../components/DecidePanel'
+import { ActivityPanel } from '../components/ActivityPanel'
+import { GroupPanel } from '../components/GroupPanel'
+import { decideWhereToEat } from '../services/decideService'
 import styles from './HomePage.module.css'
 
-type HealthState =
-  | { message: string; status: 'healthy' }
-  | { message: string; status: 'loading' }
-  | { message: string; status: 'unhealthy' }
+type DecideState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'success'; reply: string; model: string; provider: string }
 
-const featureCards = [
-  {
-    description:
-      'Converse com a IA do Comidinhas, envie historico opcional e mantenha o fluxo pronto para futuras evolucoes do produto.',
-    items: [
-      'Integracao com POST /api/v1/chat',
-      'Mensagens persistidas na sessao da pagina',
-      'Feedback de loading, erro e estado vazio',
-    ],
-    title: 'Chat com IA',
-    to: '/chat',
-    variant: 'chat' as const,
-  },
-  {
-    description:
-      'Procure restaurantes proximos usando latitude, longitude, raio e prioridade de ranking com uma interface clara e responsiva.',
-    items: [
-      'Integracao com POST /api/v1/google-maps/restaurants/nearby',
-      'Suporte a geolocalizacao do navegador',
-      'Cards com endereco, nota, links e status de abertura',
-    ],
-    title: 'Busca de restaurantes proximos',
-    to: '/restaurantes-proximos',
-    variant: 'nearby' as const,
-  },
-]
-
-const flavorTags = ['IA acolhedora', 'Busca local', 'Paleta quente', 'Visual mobile-first']
-
-const highlightCards = [
-  {
-    description: 'Creme, laranja, amarelo e verde em uma composicao mais leve e apetitiva.',
-    title: 'Identidade quente',
-  },
-  {
-    description: 'Cards arredondados, brilho suave e destaque forte para acoes principais.',
-    title: 'Cara de produto',
-  },
-  {
-    description: 'Componentes pequenos e organizados para evoluir sem virar um arquivo gigante.',
-    title: 'Base facil de crescer',
-  },
-]
-
-const palette = ['#ff6b00', '#ffb703', '#4caf50', '#1f2937', '#fff8ee']
-
-const showcaseList = [
-  { name: 'Bolo de cenoura fit', meta: '4.8 - 50 min' },
-  { name: 'Lamen rapido', meta: '4.7 - Liberdade' },
-  { name: 'Jantar leve', meta: 'IA + historico' },
-]
+const defaultContext = {
+  budget: 'R$ $$',
+  weather: 'Ensolarado',
+  dayOfWeek: 'Sábado',
+  location: 'Próximo de nós',
+  mood: 'Algo diferente',
+}
 
 export function HomePage() {
-  const [healthState, setHealthState] = useState<HealthState>({
-    message: 'Verificando conectividade com o BFF local...',
-    status: 'loading',
-  })
+  const [decideState, setDecideState] = useState<DecideState>({ status: 'idle' })
 
-  useEffect(() => {
-    let ignore = false
+  async function handleDecide() {
+    setDecideState({ status: 'loading' })
 
-    checkBackendHealth()
-      .then((result) => {
-        if (!ignore) {
-          setHealthState({
-            message: result.message,
-            status: 'healthy',
-          })
-        }
+    try {
+      const response = await decideWhereToEat(defaultContext)
+      setDecideState({
+        status: 'success',
+        reply: response.reply,
+        model: response.model,
+        provider: response.provider,
       })
-      .catch((error: unknown) => {
-        if (!ignore) {
-          setHealthState({
-            message: getErrorMessage(error, 'Nao foi possivel conectar ao BFF local.'),
-            status: 'unhealthy',
-          })
-        }
+    } catch (error: unknown) {
+      setDecideState({
+        status: 'error',
+        message: getErrorMessage(error, 'Não foi possível consultar a IA agora.'),
       })
-
-    return () => {
-      ignore = true
     }
-  }, [])
+  }
 
-  const statusTone =
-    healthState.status === 'healthy'
-      ? 'sage'
-      : healthState.status === 'unhealthy'
-        ? 'danger'
-        : 'accent'
+  function handleReset() {
+    setDecideState({ status: 'idle' })
+  }
 
   return (
-    <section className={styles.page}>
-      <div className={styles.hero}>
-        <div className={styles.heroCopy}>
-          <PageHeader
-            action={<span className={styles.heroBadge}>Primeira versao pronta para validar</span>}
-            description="Uma home inspirada na identidade da marca, com visual mais acolhedor, blocos fortes e linguagem de app de comida."
-            eyebrow="Comidinhas Web"
-            title="Sua fome pede quais comidinhas?"
-          />
+    <div className={styles.page}>
+      <div className={styles.left}>
+        <HeroBanner onDecide={handleDecide} loading={decideState.status === 'loading'} />
 
-          <div className={styles.heroMeta}>
-            <span className="statusPill" data-tone={statusTone}>
-              {healthState.status === 'healthy'
-                ? 'BFF online'
-                : healthState.status === 'unhealthy'
-                  ? 'BFF indisponivel'
-                  : 'Testando conexao'}
-            </span>
-
-            <span className="statusPill" data-tone="accent">
-              Base URL: {env.apiBaseUrl}
-            </span>
-          </div>
-
-          <p className={styles.healthMessage}>{healthState.message}</p>
-
-          <div className={styles.flavorRow}>
-            {flavorTags.map((tag) => (
-              <span key={tag} className={styles.flavorPill}>
-                {tag}
+        {decideState.status === 'loading' ? (
+          <section className={`surfaceCard ${styles.aiCard}`}>
+            <div className={styles.aiHeader}>
+              <span className={styles.aiBadge}>
+                <Icon name="sparkle" size={14} />
+                IA Decide
               </span>
-            ))}
-          </div>
-        </div>
-
-        <aside className={`surfaceCard ${styles.showcase}`}>
-          <div className={styles.showcaseHeader}>
-            <div>
-              <span className={styles.showcaseLabel}>Identidade visual</span>
-              <h2 className={styles.showcaseTitle}>Quente, amigavel e com cara de produto mobile.</h2>
+              <strong>Pensando na melhor pedida pra vocês...</strong>
             </div>
-
-            <div className={styles.paletteRow}>
-              {palette.map((color) => (
-                <span key={color} className={styles.paletteSwatch} style={{ backgroundColor: color }} />
-              ))}
+            <div className={styles.aiSkeleton}>
+              <span />
+              <span />
+              <span />
             </div>
-          </div>
+          </section>
+        ) : null}
 
-          <div className={styles.mockupGrid}>
-            <article className={`${styles.mockupCard} ${styles.mockupPrimary}`}>
-              <span className={styles.mockupLabel}>Sugestao da IA</span>
-              <h3 className={styles.mockupTitle}>Descubra novos sabores perto de voce</h3>
+        {decideState.status === 'success' ? (
+          <section className={`surfaceCard ${styles.aiCard}`}>
+            <div className={styles.aiHeader}>
+              <span className={styles.aiBadge}>
+                <Icon name="sparkle" size={14} />
+                IA Decide
+              </span>
+              <strong>A escolha de hoje:</strong>
+            </div>
+            <p className={styles.aiReply}>{decideState.reply}</p>
+            <div className={styles.aiFooter}>
+              <span className={styles.aiMeta}>
+                {decideState.provider} · {decideState.model}
+              </span>
+              <Button onClick={handleReset} type="button" variant="ghost">
+                Pedir outra sugestão
+              </Button>
+            </div>
+          </section>
+        ) : null}
 
-              <div className={styles.mockupChipRow}>
-                <span className={styles.mockupChip}>Quero algo doce</span>
-                <span className={styles.mockupChip}>Opcoes rapidas</span>
-              </div>
+        {decideState.status === 'error' ? (
+          <section className={`surfaceCard ${styles.aiCardError}`}>
+            <div className={styles.aiHeader}>
+              <span className={styles.aiBadge} data-tone="danger">
+                <Icon name="x" size={14} />
+                Ops
+              </span>
+              <strong>A IA não respondeu agora.</strong>
+            </div>
+            <p className={styles.aiReply}>{decideState.message}</p>
+            <div className={styles.aiFooter}>
+              <Button onClick={handleDecide} type="button" variant="ghost">
+                Tentar novamente
+              </Button>
+            </div>
+          </section>
+        ) : null}
 
-              <div className={styles.mockupBubble}>O que vamos comer hoje?</div>
-            </article>
-
-            <article className={`${styles.mockupCard} ${styles.mockupSecondary}`}>
-              <div className={styles.mockupListHeader}>
-                <span className={styles.mockupListLabel}>Perto de voce</span>
-                <span className={styles.mockupListMeta}>3 ideias</span>
-              </div>
-
-              <div className={styles.mockupList}>
-                {showcaseList.map((item) => (
-                  <div key={item.name} className={styles.mockupItem}>
-                    <span className={styles.mockupThumb} />
-                    <div>
-                      <strong>{item.name}</strong>
-                      <span>{item.meta}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </div>
-        </aside>
+        <FavoritesSection />
+        <GuidesSection />
       </div>
 
-      <div className={styles.highlights}>
-        {highlightCards.map((item) => (
-          <article key={item.title} className={`surfaceCard ${styles.highlightCard}`}>
-            <span className={styles.highlightAccent} />
-            <strong>{item.title}</strong>
-            <p>{item.description}</p>
-          </article>
-        ))}
-      </div>
-
-      <div className={styles.cardGrid}>
-        {featureCards.map((feature) => (
-          <FeatureCard
-            key={feature.title}
-            description={feature.description}
-            items={feature.items}
-            title={feature.title}
-            to={feature.to}
-            variant={feature.variant}
-          />
-        ))}
-      </div>
-    </section>
+      <aside className={styles.right}>
+        <DecidePanel
+          context={defaultContext}
+          loading={decideState.status === 'loading'}
+          onDecide={handleDecide}
+        />
+        <ActivityPanel />
+        <GroupPanel />
+      </aside>
+    </div>
   )
 }

@@ -1,0 +1,64 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.1rem 1.1rem 1.2rem;
+}
+
+.header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.title {
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.addButton {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  color: var(--color-text-soft);
+  display: inline-flex;
+  height: 1.7rem;
+  justify-content: center;
+  width: 1.7rem;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.addButton:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.avatars {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.avatar {
+  background: var(--color-surface-soft);
+  border-radius: 999px;
+  height: 3rem;
+  overflow: hidden;
+  width: 3rem;
+}
+
+.avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.avatarPlus {
+  align-items: center;
+  border: 1.5px dashed var(--color-line-strong);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  justify-content: center;
+}

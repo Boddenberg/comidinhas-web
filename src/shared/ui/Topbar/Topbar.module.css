@@ -1,0 +1,169 @@
+.topbar {
+  align-items: center;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+  display: flex;
+  gap: 1.4rem;
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.search {
+  align-items: center;
+  background: var(--color-bg);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  display: flex;
+  flex: 1;
+  gap: 0.6rem;
+  max-width: 36rem;
+  padding: 0.7rem 1.1rem;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.search:focus-within {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+.search input {
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  flex: 1;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  gap: 1.2rem;
+  margin-left: auto;
+}
+
+.weather,
+.location {
+  align-items: center;
+  color: var(--color-text);
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 500;
+  gap: 0.4rem;
+}
+
+.weather {
+  color: var(--color-yellow);
+}
+
+.weather span {
+  color: var(--color-text);
+}
+
+.location {
+  color: var(--color-text-soft);
+}
+
+.location span {
+  color: var(--color-text);
+}
+
+.iconButton {
+  align-items: center;
+  background: transparent;
+  border-radius: 999px;
+  color: var(--color-text-soft);
+  display: inline-flex;
+  height: 2.4rem;
+  justify-content: center;
+  position: relative;
+  width: 2.4rem;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.iconButton:hover {
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+}
+
+.badgeDot {
+  background: var(--color-pink);
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  height: 0.55rem;
+  position: absolute;
+  right: 0.55rem;
+  top: 0.5rem;
+  width: 0.55rem;
+}
+
+.profile {
+  align-items: center;
+  background: transparent;
+  border-radius: 999px;
+  color: var(--color-text-soft);
+  display: inline-flex;
+  gap: 0.4rem;
+  padding: 0.2rem 0.4rem 0.2rem 0.2rem;
+  transition: background-color 160ms ease;
+}
+
+.profile:hover {
+  background: var(--color-surface-soft);
+}
+
+.avatar {
+  border-radius: 999px;
+  display: inline-block;
+  height: 2.4rem;
+  overflow: hidden;
+  width: 2.4rem;
+}
+
+.avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .topbar {
+    padding: 0.9rem 1.2rem;
+  }
+
+  .actions {
+    gap: 0.8rem;
+  }
+
+  .weather,
+  .location {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 820px) {
+  .weather span:not(:first-child),
+  .location span:not(:first-child) {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    flex-wrap: wrap;
+    padding: 0.8rem 1rem;
+  }
+
+  .search {
+    order: 3;
+    max-width: 100%;
+    width: 100%;
+  }
+}

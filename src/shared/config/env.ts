@@ -1,4 +1,4 @@
-const fallbackApiBaseUrl = 'http://localhost:8000'
+const fallbackApiBaseUrl = 'https://comidinhas-bff-production.up.railway.app'
 
 function normalizeBaseUrl(baseUrl: string) {
   return baseUrl.replace(/\/+$/, '')
