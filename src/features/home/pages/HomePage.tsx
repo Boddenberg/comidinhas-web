@@ -61,15 +61,19 @@ function formatRelativeTime(iso: string) {
 }
 
 export function HomePage() {
-  const { profile } = useAuth()
+  const { perfil, grupo } = useAuth()
   const [decideState, setDecideState] = useState<DecideState>({ status: 'idle' })
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [placesError, setPlacesError] = useState<string | null>(null)
   const [placesLoading, setPlacesLoading] = useState(true)
 
   useEffect(() => {
+    if (!grupo) {
+      setPlacesLoading(false)
+      return
+    }
     let cancelled = false
-    listPlaces({ page_size: 20, sort_by: 'updated_at', sort_order: 'desc' })
+    listPlaces(grupo.id, { page_size: 20, sort_by: 'updated_at', sort_order: 'desc' })
       .then((result) => {
         if (cancelled) return
         setPlaces(result.items)
@@ -87,7 +91,7 @@ export function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [grupo])
 
   function handlePlaceUpdated(updated: Place) {
     setPlaces((current) => current?.map((p) => (p.id === updated.id ? updated : p)) ?? null)
@@ -125,8 +129,8 @@ export function HomePage() {
     return places
       .slice()
       .sort((a, b) => {
-        const tA = new Date(a.updated_at ?? a.created_at).getTime()
-        const tB = new Date(b.updated_at ?? b.created_at).getTime()
+        const tA = new Date(a.updated_at ?? a.created_at ?? 0).getTime()
+        const tB = new Date(b.updated_at ?? b.created_at ?? 0).getTime()
         return tB - tA
       })
       .slice(0, 3)
@@ -134,12 +138,12 @@ export function HomePage() {
         id: place.id,
         name: place.name,
         status: place.status,
-        when: formatRelativeTime(place.updated_at ?? place.created_at),
+        when: formatRelativeTime(place.updated_at ?? place.created_at ?? ''),
         image: place.image_url,
       }))
   }, [places])
 
-  const greeting = profile?.full_name?.split(' ')[0] ?? 'gente'
+  const greeting = perfil?.nome?.split(' ')[0] ?? 'gente'
 
   return (
     <div className={styles.layout}>
@@ -390,7 +394,7 @@ export function HomePage() {
           </header>
 
           <div className={styles.groupMembers}>
-            <span className={styles.groupAvatarPhoto} aria-label={profile?.full_name ?? 'Membro'}>
+            <span className={styles.groupAvatarPhoto} aria-label={perfil?.nome ?? 'Membro'}>
               <img alt="" src="/casal-fv.png" />
             </span>
             <Link aria-label="Convidar amigo" className={styles.groupInvite} to="/perfil">

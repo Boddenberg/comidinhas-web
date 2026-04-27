@@ -14,7 +14,6 @@ export function LoginPage() {
   const location = useLocation()
 
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,12 +22,12 @@ export function LoginPage() {
     setError(null)
     setSubmitting(true)
     try {
-      await signIn({ email: email.trim(), password })
+      await signIn({ email: email.trim().toLowerCase() })
       const state = location.state as LocationState
       const redirectTo = state?.from?.pathname ?? '/'
       navigate(redirectTo, { replace: true })
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Não foi possível entrar. Verifique seus dados.'))
+      setError(getErrorMessage(err, 'Não encontramos uma conta com esse e-mail.'))
     } finally {
       setSubmitting(false)
     }
@@ -38,13 +37,13 @@ export function LoginPage() {
     <AuthLayout
       footer={
         <>
-          Ainda não tem conta?
+          Ainda não têm conta?
           <Link className={styles.footerLink} to="/signup">
             Criar agora
           </Link>
         </>
       }
-      subtitle="Entre para ver seus lugares, seus guias e deixar a IA decidir."
+      subtitle="Entre com o e-mail que vocês usaram pra cadastrar a conta do casal."
       title="Bem-vindos de volta"
     >
       <form className={styles.form} onSubmit={handleSubmit}>
@@ -52,6 +51,7 @@ export function LoginPage() {
           <span>E-mail</span>
           <input
             autoComplete="email"
+            autoFocus
             className="textInput"
             disabled={submitting}
             onChange={(e) => setEmail(e.target.value)}
@@ -62,20 +62,10 @@ export function LoginPage() {
           />
         </label>
 
-        <label className={styles.field}>
-          <span>Senha</span>
-          <input
-            autoComplete="current-password"
-            className="textInput"
-            disabled={submitting}
-            minLength={6}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-            type="password"
-            value={password}
-          />
-        </label>
+        <p className={styles.hint}>
+          Por enquanto a entrada é só pelo e-mail (sem senha) — vamos ligar autenticação completa
+          em breve.
+        </p>
 
         {error ? <p className={styles.error}>{error}</p> : null}
 

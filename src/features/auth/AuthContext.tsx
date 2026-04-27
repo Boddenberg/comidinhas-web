@@ -4,28 +4,20 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react'
-import { configureApiClient } from '@/shared/api/apiClient'
+import { clearSession, readSession, writeSession } from './lib/tokenStorage'
 import {
-  clearSession,
-  isSessionExpiringSoon,
-  readSession,
-  writeSession,
-} from './lib/tokenStorage'
-import {
-  extractSession,
-  getMe,
-  refreshSession as refreshSessionRequest,
+  fetchGrupo,
+  fetchProfile,
   signin as signinRequest,
   signup as signupRequest,
-  updateMe as updateMeRequest,
+  updateProfile as updateProfileRequest,
 } from './services/authService'
 import type {
-  AuthProfile,
-  AuthSession,
+  Grupo,
+  Perfil,
   ProfileUpdateRequest,
   SigninRequest,
   SignupRequest,
@@ -35,12 +27,12 @@ type AuthStatus = 'idle' | 'authenticated' | 'unauthenticated'
 
 type AuthContextValue = {
   status: AuthStatus
-  profile: AuthProfile | null
-  session: AuthSession | null
+  perfil: Perfil | null
+  grupo: Grupo | null
   signIn: (payload: SigninRequest) => Promise<void>
   signUp: (payload: SignupRequest) => Promise<void>
   signOut: () => void
-  updateProfile: (payload: ProfileUpdateRequest) => Promise<AuthProfile>
+  updatePerfil: (payload: ProfileUpdateRequest) => Promise<Perfil>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -51,140 +43,91 @@ type ProviderProps = {
 
 export function AuthProvider({ children }: ProviderProps) {
   const [status, setStatus] = useState<AuthStatus>('idle')
-  const [profile, setProfile] = useState<AuthProfile | null>(null)
-  const [session, setSession] = useState<AuthSession | null>(() => readSession())
-  const sessionRef = useRef<AuthSession | null>(session)
-  const refreshPromiseRef = useRef<Promise<string | null> | null>(null)
+  const [perfil, setPerfil] = useState<Perfil | null>(null)
+  const [grupo, setGrupo] = useState<Grupo | null>(null)
 
-  useEffect(() => {
-    sessionRef.current = session
-  }, [session])
-
-  const persistSession = useCallback((next: AuthSession | null) => {
-    if (next) {
-      writeSession(next)
+  const persist = useCallback((nextPerfil: Perfil | null, nextGrupo: Grupo | null) => {
+    if (nextPerfil && nextGrupo) {
+      writeSession({ perfil_id: nextPerfil.id, grupo_id: nextGrupo.id })
     } else {
       clearSession()
     }
-    sessionRef.current = next
-    setSession(next)
+    setPerfil(nextPerfil)
+    setGrupo(nextGrupo)
   }, [])
-
-  const refreshTokenIfNeeded = useCallback(async (): Promise<string | null> => {
-    const current = sessionRef.current
-    if (!current) return null
-
-    if (refreshPromiseRef.current) {
-      return refreshPromiseRef.current
-    }
-
-    const promise = (async () => {
-      try {
-        const response = await refreshSessionRequest(current.refresh_token)
-        const nextSession = extractSession(response)
-        persistSession(nextSession)
-        return nextSession.access_token
-      } catch (error) {
-        console.error('Auth refresh failed', error)
-        persistSession(null)
-        setProfile(null)
-        setStatus('unauthenticated')
-        return null
-      } finally {
-        refreshPromiseRef.current = null
-      }
-    })()
-
-    refreshPromiseRef.current = promise
-    return promise
-  }, [persistSession])
-
-  useEffect(() => {
-    configureApiClient({
-      getAuthToken: () => sessionRef.current?.access_token ?? null,
-      onUnauthorized: refreshTokenIfNeeded,
-    })
-  }, [refreshTokenIfNeeded])
 
   useEffect(() => {
     let cancelled = false
-
-    async function bootstrap() {
-      const stored = sessionRef.current
-      if (!stored) {
-        setStatus('unauthenticated')
-        return
-      }
-
-      if (isSessionExpiringSoon(stored)) {
-        const newToken = await refreshTokenIfNeeded()
-        if (!newToken || cancelled) return
-      }
-
-      try {
-        const me = await getMe()
-        if (cancelled) return
-        setProfile(me)
-        setStatus('authenticated')
-      } catch (error) {
-        if (cancelled) return
-        console.error('Failed to load profile', error)
-        persistSession(null)
-        setProfile(null)
-        setStatus('unauthenticated')
-      }
+    const stored = readSession()
+    if (!stored) {
+      setStatus('unauthenticated')
+      return
     }
 
-    bootstrap()
+    Promise.all([fetchProfile(stored.perfil_id), fetchGrupo(stored.grupo_id)])
+      .then(([loadedPerfil, loadedGrupo]) => {
+        if (cancelled) return
+        setPerfil(loadedPerfil)
+        setGrupo(loadedGrupo)
+        setStatus('authenticated')
+      })
+      .catch(() => {
+        if (cancelled) return
+        clearSession()
+        setStatus('unauthenticated')
+      })
 
     return () => {
       cancelled = true
     }
-  }, [persistSession, refreshTokenIfNeeded])
+  }, [])
 
   const signIn = useCallback(
     async (payload: SigninRequest) => {
-      const bundle = await signinRequest(payload)
-      persistSession(bundle.session)
-      setProfile(bundle.profile)
+      const { perfil: p, grupo: g } = await signinRequest(payload)
+      persist(p, g)
       setStatus('authenticated')
     },
-    [persistSession],
+    [persist],
   )
 
   const signUp = useCallback(
     async (payload: SignupRequest) => {
-      const bundle = await signupRequest(payload)
-      persistSession(bundle.session)
-      setProfile(bundle.profile)
+      const { perfil: p, grupo: g } = await signupRequest(payload)
+      persist(p, g)
       setStatus('authenticated')
     },
-    [persistSession],
+    [persist],
   )
 
   const signOut = useCallback(() => {
-    persistSession(null)
-    setProfile(null)
+    persist(null, null)
     setStatus('unauthenticated')
-  }, [persistSession])
+  }, [persist])
 
-  const updateProfile = useCallback(async (payload: ProfileUpdateRequest) => {
-    const next = await updateMeRequest(payload)
-    setProfile(next)
-    return next
-  }, [])
+  const updatePerfil = useCallback(
+    async (payload: ProfileUpdateRequest) => {
+      if (!perfil) {
+        throw new Error('Sem perfil ativo.')
+      }
+      const updated = await updateProfileRequest(perfil.id, payload)
+      setPerfil(updated)
+      return updated
+    },
+    [perfil],
+  )
 
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
-      profile,
-      session,
+      perfil,
+      grupo,
       signIn,
       signUp,
       signOut,
-      updateProfile,
+      updatePerfil,
     }),
-    [profile, session, signIn, signOut, signUp, status, updateProfile],
+    [grupo, perfil, signIn, signOut, signUp, status, updatePerfil],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

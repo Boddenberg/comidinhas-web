@@ -14,7 +14,7 @@ const navigation = [
 ] as const
 
 export function AppShell() {
-  const { profile, signOut } = useAuth()
+  const { perfil, grupo, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -35,7 +35,8 @@ export function AppShell() {
     return () => document.removeEventListener('mousedown', handle)
   }, [menuOpen])
 
-  const displayName = profile?.full_name || profile?.username || 'Filipe & Victor'
+  const displayName = grupo?.nome || perfil?.nome || 'Comidinhas'
+  const tagline = grupo?.tipo === 'casal' ? 'casal' : 'grupo'
 
   return (
     <div className={styles.shell}>
@@ -87,7 +88,7 @@ export function AppShell() {
           <div className={styles.coupleInfo}>
             <strong>{displayName}</strong>
             <span>
-              juntos desde 2023{' '}
+              {tagline === 'casal' ? 'nosso casal' : 'nosso grupo'}{' '}
               <Icon name="heart-filled" size={11} className={styles.brandHeart} />
             </span>
           </div>
@@ -141,8 +142,8 @@ export function AppShell() {
               {menuOpen ? (
                 <div className={styles.userDropdown} role="menu">
                   <div className={styles.userDropdownHeader}>
-                    <strong>{displayName}</strong>
-                    <span>@{profile?.username ?? ''}</span>
+                    <strong>{perfil?.nome ?? displayName}</strong>
+                    <span>{perfil?.email ?? ''}</span>
                   </div>
                   <button
                     className={styles.userDropdownItem}

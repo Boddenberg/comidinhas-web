@@ -1,86 +1,43 @@
-export type AuthSession = {
-  access_token: string
-  refresh_token: string
-  expires_in: number
-  expires_at: number
-}
-
-export type AuthUser = {
+export type Perfil = {
   id: string
-  email: string
+  nome: string
+  email: string | null
+  bio: string | null
+  cidade: string | null
+  foto_url: string | null
+  criado_em?: string | null
+  atualizado_em?: string | null
 }
 
-export type AuthProfile = {
+export type Membro = {
+  nome: string
+  email: string | null
+}
+
+export type Grupo = {
   id: string
-  username: string
-  full_name: string | null
-  avatar_url: string | null
-  city?: string | null
-  bio?: string | null
-  favorite_cuisine?: string | null
-}
-
-export type AuthBundle = {
-  user: AuthUser
-  profile: AuthProfile
-  session: AuthSession
-  email_confirmation_required?: boolean
+  nome: string
+  tipo: 'casal' | 'grupo' | string
+  descricao: string | null
+  membros: Membro[]
+  criado_em?: string | null
+  atualizado_em?: string | null
 }
 
 export type SignupRequest = {
+  nome: string
   email: string
-  password: string
-  username: string
-  full_name?: string
+  bio?: string
+  cidade?: string
 }
 
 export type SigninRequest = {
   email: string
-  password: string
-}
-
-export type RefreshRequest = {
-  refresh_token: string
-}
-
-export type RefreshResponse = {
-  session: AuthSession
 }
 
 export type ProfileUpdateRequest = Partial<{
-  full_name: string
-  username: string
-  city: string
-  bio: string
-  favorite_cuisine: string
-  avatar_url: string
-}>
-
-export type GroupMember = {
-  profile_id: string
-  role: 'owner' | 'member'
-  full_name: string | null
-  avatar_url: string | null
-}
-
-export type GroupContext = {
-  user_id: string
-  profile_id: string
+  nome: string
   email: string
-  username: string
-  full_name: string | null
-  avatar_url: string | null
-  active_group: {
-    id: string
-    name: string
-    type: string
-    members: GroupMember[]
-  } | null
-  active_role: string | null
-  groups: Array<{
-    id: string
-    name: string
-    type: string
-    role: string
-  }>
-}
+  bio: string
+  cidade: string
+}>

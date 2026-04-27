@@ -25,6 +25,23 @@
   max-width: 36rem;
 }
 
+.groupChip {
+  background: var(--color-primary-soft);
+  border-radius: 999px;
+  color: var(--color-primary);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  width: fit-content;
+}
+
+.groupChip strong {
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+
 .form {
   background: var(--color-surface);
   border: 1px solid var(--color-line);

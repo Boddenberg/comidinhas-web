@@ -10,10 +10,10 @@ export function SignupPage() {
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
-  const [fullName, setFullName] = useState('')
-  const [username, setUsername] = useState('')
+  const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [cidade, setCidade] = useState('')
+  const [bio, setBio] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,14 +23,14 @@ export function SignupPage() {
     setSubmitting(true)
     try {
       await signUp({
-        email: email.trim(),
-        password,
-        username: username.trim(),
-        full_name: fullName.trim() || undefined,
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        cidade: cidade.trim() || undefined,
+        bio: bio.trim() || undefined,
       })
       navigate('/', { replace: true })
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Não foi possível criar sua conta agora.'))
+      setError(getErrorMessage(err, 'Não foi possível criar a conta agora.'))
     } finally {
       setSubmitting(false)
     }
@@ -40,7 +40,7 @@ export function SignupPage() {
     <AuthLayout
       footer={
         <>
-          Já tem conta?
+          Já têm conta?
           <Link className={styles.footerLink} to="/login">
             Entrar
           </Link>
@@ -51,30 +51,18 @@ export function SignupPage() {
     >
       <form className={styles.form} onSubmit={handleSubmit}>
         <label className={styles.field}>
-          <span>Nome completo</span>
+          <span>Nome do casal ou da pessoa</span>
           <input
             autoComplete="name"
+            autoFocus
             className="textInput"
             disabled={submitting}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Filipe Silva"
-            type="text"
-            value={fullName}
-          />
-        </label>
-
-        <label className={styles.field}>
-          <span>Username</span>
-          <input
-            autoComplete="username"
-            className="textInput"
-            disabled={submitting}
-            minLength={3}
-            onChange={(e) => setUsername(e.target.value.replace(/\s+/g, '').toLowerCase())}
-            placeholder="filipe"
+            minLength={2}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Filipe & Victor"
             required
             type="text"
-            value={username}
+            value={nome}
           />
         </label>
 
@@ -85,7 +73,7 @@ export function SignupPage() {
             className="textInput"
             disabled={submitting}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="filipe@comidinhas.app"
+            placeholder="vocesdois@comidinhas.app"
             required
             type="email"
             value={email}
@@ -93,17 +81,25 @@ export function SignupPage() {
         </label>
 
         <label className={styles.field}>
-          <span>Senha</span>
+          <span>Cidade</span>
           <input
-            autoComplete="new-password"
             className="textInput"
             disabled={submitting}
-            minLength={6}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="mínimo 6 caracteres"
-            required
-            type="password"
-            value={password}
+            onChange={(e) => setCidade(e.target.value)}
+            placeholder="São Paulo"
+            type="text"
+            value={cidade}
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span>Sobre vocês (opcional)</span>
+          <textarea
+            className="textArea"
+            disabled={submitting}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Apaixonados por sushi e drinks autorais..."
+            value={bio}
           />
         </label>
 

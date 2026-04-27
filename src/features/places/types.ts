@@ -16,16 +16,13 @@ export const PLACE_STATUS_LABELS: Record<PlaceStatus, string> = {
 
 export type PlacePhoto = {
   id: string
-  place_id: string
-  group_id: string
-  public_url: string
-  storage_path: string
-  is_cover: boolean
-  sort_order: number
-  created_by: string
-  created_at: string
+  url: string
+  caminho: string
+  ordem: number
+  capa: boolean
 }
 
+/** Frontend-friendly place shape. Mapped from BFF LugarResponse (pt). */
 export type Place = {
   id: string
   group_id: string
@@ -40,9 +37,31 @@ export type Place = {
   is_favorite: boolean
   image_url: string | null
   rating?: number | null
-  created_at: string
-  updated_at?: string
-  photos?: PlacePhoto[]
+  added_by: string | null
+  created_at: string | null
+  updated_at: string | null
+  photos: PlacePhoto[]
+}
+
+/** Raw BFF response shape (pt). */
+export type LugarResponse = {
+  id: string
+  grupo_id: string
+  nome: string
+  categoria: string | null
+  bairro: string | null
+  cidade: string | null
+  faixa_preco: number | null
+  link: string | null
+  notas: string | null
+  status: PlaceStatus
+  favorito: boolean
+  imagem_capa: string | null
+  fotos: PlacePhoto[]
+  adicionado_por: string | null
+  extra: Record<string, unknown>
+  criado_em: string | null
+  atualizado_em: string | null
 }
 
 export type PlaceListResponse = {
@@ -60,6 +79,7 @@ export type PlaceListParams = {
   status?: PlaceStatus
   is_favorite?: boolean
   category?: string
+  neighborhood?: string
   sort_by?: 'created_at' | 'updated_at' | 'name'
   sort_order?: 'asc' | 'desc'
 }
@@ -74,6 +94,7 @@ export type CreatePlacePayload = {
   notes?: string
   status?: PlaceStatus
   is_favorite?: boolean
+  added_by?: string
 }
 
 export type UpdatePlacePayload = Partial<CreatePlacePayload>
@@ -81,7 +102,7 @@ export type UpdatePlacePayload = Partial<CreatePlacePayload>
 export type GoogleAutocompleteSuggestion = {
   type: 'place' | 'query'
   place_id?: string
-  text?: { text: string }
+  text?: { text: string; matches?: Array<{ start_offset: number; end_offset: number }> }
   main_text?: { text: string; matches?: Array<{ start_offset: number; end_offset: number }> }
   secondary_text?: { text: string }
   types?: string[]
@@ -108,8 +129,8 @@ export type GoogleAutocompleteRequest = {
 export type GooglePlaceDetail = {
   place_id: string
   display_name: string
-  formatted_address: string
-  location: { latitude: number; longitude: number }
+  formatted_address: string | null
+  location: { latitude: number; longitude: number } | null
   neighborhood?: string | null
   city?: string | null
   rating?: number | null
@@ -131,4 +152,5 @@ export type SaveGooglePlacePayload = {
   status?: PlaceStatus
   is_favorite?: boolean
   notes?: string
+  added_by?: string
 }

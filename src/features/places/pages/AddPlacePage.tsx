@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/features/auth/AuthContext'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Button } from '@/shared/ui/Button/Button'
 import { Icon } from '@/shared/ui/Icon/Icon'
@@ -62,6 +63,7 @@ export function AddPlacePage() {
 
 function GoogleSearchPanel() {
   const navigate = useNavigate()
+  const { grupo, perfil } = useAuth()
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<GoogleAutocompleteSuggestion[]>([])
   const [loading, setLoading] = useState(false)
@@ -138,15 +140,16 @@ function GoogleSearchPanel() {
   }
 
   async function handleSave() {
-    if (!selected) return
+    if (!selected || !grupo) return
     setSaving(true)
     setSaveError(null)
     try {
-      const saved = await saveGooglePlace({
+      const saved = await saveGooglePlace(grupo.id, {
         place_id: selected.place_id,
         status,
         is_favorite: favorite,
         notes: notes.trim() || undefined,
+        added_by: perfil?.nome,
       })
       navigate(`/favoritos`, { state: { savedId: saved.id } })
     } catch (err: unknown) {
@@ -288,6 +291,7 @@ const PRICE_OPTIONS = [
 
 function ManualForm() {
   const navigate = useNavigate()
+  const { grupo, perfil } = useAuth()
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
@@ -306,11 +310,11 @@ function ManualForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!canSubmit) return
+    if (!canSubmit || !grupo) return
     setError(null)
     setSubmitting(true)
     try {
-      await createPlace({
+      await createPlace(grupo.id, {
         name: name.trim(),
         category: category.trim() || undefined,
         neighborhood: neighborhood.trim() || undefined,
@@ -320,6 +324,7 @@ function ManualForm() {
         notes: notes.trim() || undefined,
         status,
         is_favorite: favorite,
+        added_by: perfil?.nome,
       })
       navigate('/favoritos')
     } catch (err: unknown) {

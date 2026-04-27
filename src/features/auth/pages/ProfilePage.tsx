@@ -5,26 +5,24 @@ import { useAuth } from '../AuthContext'
 import styles from './ProfilePage.module.css'
 
 export function ProfilePage() {
-  const { profile, signOut, updateProfile } = useAuth()
+  const { perfil, grupo, signOut, updatePerfil } = useAuth()
 
-  const [fullName, setFullName] = useState('')
-  const [username, setUsername] = useState('')
-  const [city, setCity] = useState('')
+  const [nome, setNome] = useState('')
+  const [email, setEmail] = useState('')
+  const [cidade, setCidade] = useState('')
   const [bio, setBio] = useState('')
-  const [favoriteCuisine, setFavoriteCuisine] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    if (!profile) return
-    setFullName(profile.full_name ?? '')
-    setUsername(profile.username ?? '')
-    setCity(profile.city ?? '')
-    setBio(profile.bio ?? '')
-    setFavoriteCuisine(profile.favorite_cuisine ?? '')
-  }, [profile])
+    if (!perfil) return
+    setNome(perfil.nome ?? '')
+    setEmail(perfil.email ?? '')
+    setCidade(perfil.cidade ?? '')
+    setBio(perfil.bio ?? '')
+  }, [perfil])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -32,12 +30,11 @@ export function ProfilePage() {
     setSuccess(false)
     setSubmitting(true)
     try {
-      await updateProfile({
-        full_name: fullName.trim(),
-        username: username.trim(),
-        city: city.trim(),
+      await updatePerfil({
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        cidade: cidade.trim(),
         bio: bio.trim(),
-        favorite_cuisine: favoriteCuisine.trim(),
       })
       setSuccess(true)
     } catch (err: unknown) {
@@ -47,7 +44,7 @@ export function ProfilePage() {
     }
   }
 
-  if (!profile) {
+  if (!perfil) {
     return <p className={styles.muted}>Carregando seu perfil...</p>
   }
 
@@ -56,31 +53,39 @@ export function ProfilePage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Nosso perfil</h1>
         <p className={styles.subtitle}>
-          Edite suas informações pra deixar a IA mais certeira nas sugestões.
+          Atualize as informações pra deixar a IA mais certeira e o grupo mais cara de vocês.
         </p>
+        {grupo ? (
+          <p className={styles.groupChip}>
+            Grupo ativo: <strong>{grupo.nome}</strong>
+          </p>
+        ) : null}
       </header>
 
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.gridFields}>
           <label className={styles.field}>
-            <span>Nome completo</span>
+            <span>Nome</span>
             <input
               className="textInput"
               disabled={submitting}
-              onChange={(e) => setFullName(e.target.value)}
+              minLength={2}
+              onChange={(e) => setNome(e.target.value)}
+              required
               type="text"
-              value={fullName}
+              value={nome}
             />
           </label>
 
           <label className={styles.field}>
-            <span>Username</span>
+            <span>E-mail</span>
             <input
               className="textInput"
               disabled={submitting}
-              onChange={(e) => setUsername(e.target.value.replace(/\s+/g, '').toLowerCase())}
-              type="text"
-              value={username}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              type="email"
+              value={email}
             />
           </label>
 
@@ -89,22 +94,10 @@ export function ProfilePage() {
             <input
               className="textInput"
               disabled={submitting}
-              onChange={(e) => setCity(e.target.value)}
+              onChange={(e) => setCidade(e.target.value)}
               placeholder="São Paulo"
               type="text"
-              value={city}
-            />
-          </label>
-
-          <label className={styles.field}>
-            <span>Tipo de comida favorita</span>
-            <input
-              className="textInput"
-              disabled={submitting}
-              onChange={(e) => setFavoriteCuisine(e.target.value)}
-              placeholder="japonesa, italiana, etc."
-              type="text"
-              value={favoriteCuisine}
+              value={cidade}
             />
           </label>
         </div>

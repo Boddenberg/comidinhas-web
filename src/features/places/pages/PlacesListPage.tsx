@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '@/features/auth/AuthContext'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Button } from '@/shared/ui/Button/Button'
 import { Icon } from '@/shared/ui/Icon/Icon'
@@ -24,6 +25,7 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
 ]
 
 export function PlacesListPage() {
+  const { grupo } = useAuth()
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -31,9 +33,13 @@ export function PlacesListPage() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
+    if (!grupo) {
+      setLoading(false)
+      return
+    }
     let cancelled = false
     setLoading(true)
-    listPlaces({ page_size: 50 })
+    listPlaces(grupo.id, { page_size: 50 })
       .then((result) => {
         if (cancelled) return
         setPlaces(result.items)
@@ -51,7 +57,7 @@ export function PlacesListPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [grupo])
 
   function handleUpdated(updated: Place) {
     setPlaces((current) => current?.map((p) => (p.id === updated.id ? updated : p)) ?? null)
