@@ -1,5 +1,22 @@
+import { useState } from 'react'
 import { Icon } from '@/shared/ui/Icon/Icon'
+import { getErrorMessage } from '@/shared/lib/getErrorMessage'
+import { decideWhereToEat } from '../services/decideService'
 import styles from './HomePage.module.css'
+
+type DecideState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'success'; reply: string; model: string; provider: string }
+
+const DECIDE_CONTEXT = {
+  budget: 'R$ $$',
+  weather: 'Ensolarado',
+  dayOfWeek: 'Sábado',
+  location: 'Próximo de nós',
+  mood: 'Algo diferente',
+}
 
 type FavoriteStatus = 'visited' | 'comeback' | 'pending'
 
@@ -55,6 +72,29 @@ const recentActivity: Array<{
 ]
 
 export function HomePage() {
+  const [decideState, setDecideState] = useState<DecideState>({ status: 'idle' })
+
+  async function handleDecide() {
+    setDecideState({ status: 'loading' })
+
+    try {
+      const response = await decideWhereToEat(DECIDE_CONTEXT)
+      setDecideState({
+        status: 'success',
+        reply: response.reply,
+        model: response.model,
+        provider: response.provider,
+      })
+    } catch (error: unknown) {
+      setDecideState({
+        status: 'error',
+        message: getErrorMessage(error, 'Não foi possível consultar a IA agora.'),
+      })
+    }
+  }
+
+  const isLoading = decideState.status === 'loading'
+
   return (
     <div className={styles.layout}>
       <div className={styles.content}>
@@ -71,13 +111,19 @@ export function HomePage() {
               <br />
               perfeito pra gente hoje.
             </p>
-            <button type="button" className={styles.heroButton}>
+            <button
+              className={styles.heroButton}
+              disabled={isLoading}
+              onClick={handleDecide}
+              type="button"
+            >
               <Icon name="sparkles" size={18} />
-              Deixar a IA decidir
+              {isLoading ? 'Pensando...' : 'Deixar a IA decidir'}
             </button>
           </div>
 
           <div className={styles.heroIllustration} aria-label="Ilustração do casal" role="img">
+            <img alt="" aria-hidden="true" className={styles.heroImage} src="/casal-fundo.png" />
             <span className={styles.heroFloatingHeart} data-position="top" aria-hidden="true">
               <Icon name="heart" size={20} />
             </span>
@@ -86,6 +132,64 @@ export function HomePage() {
             </span>
           </div>
         </section>
+
+        {decideState.status === 'loading' ? (
+          <section className={styles.aiResultCard}>
+            <header className={styles.aiResultHeader}>
+              <span className={styles.aiResultBadge}>
+                <Icon name="sparkles" size={14} /> IA Decide
+              </span>
+              <strong>Pensando na melhor pedida pra vocês...</strong>
+            </header>
+            <div className={styles.aiSkeleton} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+          </section>
+        ) : null}
+
+        {decideState.status === 'success' ? (
+          <section className={styles.aiResultCard}>
+            <header className={styles.aiResultHeader}>
+              <span className={styles.aiResultBadge}>
+                <Icon name="sparkles" size={14} /> IA Decide
+              </span>
+              <strong>A escolha de hoje:</strong>
+            </header>
+            <p className={styles.aiResultReply}>{decideState.reply}</p>
+            <footer className={styles.aiResultFooter}>
+              <span className={styles.aiResultMeta}>
+                {decideState.provider} · {decideState.model}
+              </span>
+              <button
+                className={styles.aiResultRetry}
+                onClick={handleDecide}
+                type="button"
+              >
+                Pedir outra sugestão
+              </button>
+            </footer>
+          </section>
+        ) : null}
+
+        {decideState.status === 'error' ? (
+          <section className={`${styles.aiResultCard} ${styles.aiResultError}`}>
+            <header className={styles.aiResultHeader}>
+              <strong>A IA não respondeu agora.</strong>
+            </header>
+            <p className={styles.aiResultReply}>{decideState.message}</p>
+            <footer className={styles.aiResultFooter}>
+              <button
+                className={styles.aiResultRetry}
+                onClick={handleDecide}
+                type="button"
+              >
+                Tentar novamente
+              </button>
+            </footer>
+          </section>
+        ) : null}
 
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
@@ -204,8 +308,14 @@ export function HomePage() {
             ))}
           </ul>
 
-          <button type="button" className={styles.aiButton}>
-            Deixar a IA decidir <Icon name="sparkles" size={16} />
+          <button
+            className={styles.aiButton}
+            disabled={isLoading}
+            onClick={handleDecide}
+            type="button"
+          >
+            {isLoading ? 'Pensando...' : 'Deixar a IA decidir'}{' '}
+            <Icon name="sparkles" size={16} />
           </button>
         </section>
 

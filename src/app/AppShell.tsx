@@ -58,7 +58,9 @@ export function AppShell() {
           <div className={styles.coupleHeartBadge} aria-hidden="true">
             <Icon name="heart-filled" size={12} />
           </div>
-          <div className={styles.coupleAvatar} aria-label="Foto do casal" role="img" />
+          <div className={styles.coupleAvatar} aria-label="Foto do casal" role="img">
+            <img alt="Filipe e Victor" src="/casal-fv.png" />
+          </div>
           <div className={styles.coupleInfo}>
             <strong>Filipe &amp; Victor</strong>
             <span>
@@ -92,7 +94,9 @@ export function AppShell() {
               <Icon name="bell" size={20} />
             </button>
             <button type="button" className={styles.userMenu} aria-label="Abrir menu do usuário">
-              <span className={styles.userAvatar} aria-hidden="true" />
+              <span className={styles.userAvatar} aria-hidden="true">
+                <img alt="" src="/casal-fv.png" />
+              </span>
               <Icon name="chevron-down" size={16} className={styles.userChevron} />
             </button>
           </div>

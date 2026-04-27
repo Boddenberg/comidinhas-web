@@ -127,13 +127,19 @@
 }
 
 .coupleAvatar {
-  background:
-    radial-gradient(circle at 35% 45%, #f8c8a0 0 18%, transparent 19%),
-    radial-gradient(circle at 62% 45%, #e8a785 0 18%, transparent 19%),
-    linear-gradient(180deg, #fbe8d3 0%, #f3d3b0 100%);
+  aspect-ratio: 4 / 3;
+  background: var(--color-bg-soft);
   border-radius: var(--radius-md);
-  height: 6.2rem;
+  height: auto;
   margin: 0.2rem auto 0.7rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.coupleAvatar img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
   width: 100%;
 }
 
@@ -269,16 +275,21 @@
 }
 
 .userAvatar {
-  background:
-    radial-gradient(circle at 35% 45%, #f8c8a0 0 22%, transparent 23%),
-    radial-gradient(circle at 65% 45%, #e8a785 0 22%, transparent 23%),
-    linear-gradient(180deg, #fbe8d3, #f3d3b0);
+  background: var(--color-bg-soft);
   border: 2px solid var(--color-surface);
   border-radius: 999px;
   box-shadow: 0 0 0 1px var(--color-line);
   display: inline-block;
   height: 2.5rem;
+  overflow: hidden;
   width: 2.5rem;
+}
+
+.userAvatar img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .main {
