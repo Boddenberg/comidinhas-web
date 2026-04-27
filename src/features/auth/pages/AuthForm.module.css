@@ -1,0 +1,37 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field span {
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.error {
+  background: rgba(216, 75, 75, 0.08);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  padding: 0.65rem 0.85rem;
+}
+
+.footerLink {
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-left: 0.35rem;
+  text-decoration: none;
+}
+
+.footerLink:hover {
+  text-decoration: underline;
+}

@@ -1,20 +1,42 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/features/auth/AuthContext'
 import { Icon } from '@/shared/ui/Icon/Icon'
 import styles from './AppShell.module.css'
 
 const navigation = [
   { icon: 'home', label: 'Início', to: '/' },
-  { icon: 'search', label: 'Explorar', to: '/explorar' },
   { icon: 'heart', label: 'Favoritos', to: '/favoritos' },
-  { icon: 'bookmark', label: 'Guias', to: '/guias' },
+  { icon: 'plus', label: 'Cadastrar lugar', to: '/lugares/novo' },
   { icon: 'sparkles', label: 'IA Decide', to: '/chat' },
-  { icon: 'trophy', label: 'Desafios', to: '/desafios' },
-  { icon: 'clock', label: 'Histórico', to: '/historico' },
-  { icon: 'user', label: 'Perfil', to: '/perfil' },
-  { icon: 'settings', label: 'Configurações', to: '/configuracoes' },
+  { icon: 'search', label: 'Explorar', to: '/explorar' },
+  { icon: 'user', label: 'Nosso perfil', to: '/perfil' },
 ] as const
 
 export function AppShell() {
+  const { profile, signOut } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handle(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [menuOpen])
+
+  const displayName = profile?.full_name || profile?.username || 'Filipe & Victor'
+
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
@@ -33,7 +55,8 @@ export function AppShell() {
           <span className={styles.brandCopy}>
             <strong>comidinhas</strong>
             <span className={styles.brandTagline}>
-              nossas escolhas, nossos rolês <Icon name="heart-filled" size={11} className={styles.brandHeart} />
+              nossas escolhas, nossos rolês{' '}
+              <Icon name="heart-filled" size={11} className={styles.brandHeart} />
             </span>
           </span>
         </NavLink>
@@ -59,12 +82,13 @@ export function AppShell() {
             <Icon name="heart-filled" size={12} />
           </div>
           <div className={styles.coupleAvatar} aria-label="Foto do casal" role="img">
-            <img alt="Filipe e Victor" src="/casal-fv.png" />
+            <img alt={displayName} src="/casal-fv.png" />
           </div>
           <div className={styles.coupleInfo}>
-            <strong>Filipe &amp; Victor</strong>
+            <strong>{displayName}</strong>
             <span>
-              juntos desde 2023 <Icon name="heart-filled" size={11} className={styles.brandHeart} />
+              juntos desde 2023{' '}
+              <Icon name="heart-filled" size={11} className={styles.brandHeart} />
             </span>
           </div>
         </div>
@@ -82,6 +106,11 @@ export function AppShell() {
           </label>
 
           <div className={styles.topbarMeta}>
+            <Link className={styles.addPlaceLink} to="/lugares/novo">
+              <Icon name="plus" size={16} />
+              <span>Cadastrar lugar</span>
+            </Link>
+
             <span className={styles.weather}>
               <Icon name="cloud-sun" size={20} className={styles.weatherIcon} />
               23°C
@@ -93,12 +122,55 @@ export function AppShell() {
             <button type="button" className={styles.iconButton} aria-label="Notificações">
               <Icon name="bell" size={20} />
             </button>
-            <button type="button" className={styles.userMenu} aria-label="Abrir menu do usuário">
-              <span className={styles.userAvatar} aria-hidden="true">
-                <img alt="" src="/casal-fv.png" />
-              </span>
-              <Icon name="chevron-down" size={16} className={styles.userChevron} />
-            </button>
+
+            <div className={styles.userMenuWrap} ref={menuRef}>
+              <button
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                aria-label="Abrir menu do usuário"
+                className={styles.userMenu}
+                onClick={() => setMenuOpen((v) => !v)}
+                type="button"
+              >
+                <span className={styles.userAvatar} aria-hidden="true">
+                  <img alt="" src="/casal-fv.png" />
+                </span>
+                <Icon name="chevron-down" size={16} className={styles.userChevron} />
+              </button>
+
+              {menuOpen ? (
+                <div className={styles.userDropdown} role="menu">
+                  <div className={styles.userDropdownHeader}>
+                    <strong>{displayName}</strong>
+                    <span>@{profile?.username ?? ''}</span>
+                  </div>
+                  <button
+                    className={styles.userDropdownItem}
+                    onClick={() => navigate('/perfil')}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <Icon name="user" size={16} /> Editar perfil
+                  </button>
+                  <button
+                    className={styles.userDropdownItem}
+                    onClick={() => navigate('/lugares/novo')}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <Icon name="plus" size={16} /> Cadastrar lugar
+                  </button>
+                  <button
+                    className={`${styles.userDropdownItem} ${styles.userDropdownItemDanger}`}
+                    onClick={signOut}
+                    role="menuitem"
+                    type="button"
+                  >
+                    Sair da conta
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
 

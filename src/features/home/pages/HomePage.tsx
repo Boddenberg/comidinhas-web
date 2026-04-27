@@ -1,6 +1,15 @@
-import { useState } from 'react'
-import { Icon } from '@/shared/ui/Icon/Icon'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '@/features/auth/AuthContext'
+import { PlaceCard } from '@/features/places/components/PlaceCard'
+import { listPlaces } from '@/features/places/services/placesService'
+import {
+  PLACE_STATUS_LABELS,
+  type Place,
+  type PlaceStatus,
+} from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
+import { Icon } from '@/shared/ui/Icon/Icon'
 import { decideWhereToEat } from '../services/decideService'
 import styles from './HomePage.module.css'
 
@@ -18,27 +27,13 @@ const DECIDE_CONTEXT = {
   mood: 'Algo diferente',
 }
 
-type FavoriteStatus = 'visited' | 'comeback' | 'pending'
-
-const favorites: Array<{
-  cuisine: string
-  name: string
-  price: string
-  rating: number
-  status: FavoriteStatus
-  tone: 'pizza' | 'sushi' | 'burger' | 'pasta'
-}> = [
-  { cuisine: 'Pizza', name: 'Leggera Pizza', price: '$$', rating: 4.8, status: 'visited', tone: 'pizza' },
-  { cuisine: 'Japonês', name: 'Tan Tan Sushi', price: '$$', rating: 4.7, status: 'visited', tone: 'sushi' },
-  { cuisine: 'Hambúrguer', name: 'Z Deli', price: '$$', rating: 4.6, status: 'comeback', tone: 'burger' },
-  { cuisine: 'Italiana', name: 'Cantina 1020', price: '$$', rating: 4.5, status: 'pending', tone: 'pasta' },
-]
-
-const statusLabels: Record<FavoriteStatus, string> = {
-  visited: 'Fomos',
-  comeback: 'Quero voltar',
-  pending: 'Ainda não fomos',
-}
+const aiCriteria = [
+  { icon: 'wallet', label: 'Orçamento', value: DECIDE_CONTEXT.budget },
+  { icon: 'cloud-sun', label: 'Clima', value: DECIDE_CONTEXT.weather },
+  { icon: 'calendar', label: 'Dia da semana', value: DECIDE_CONTEXT.dayOfWeek },
+  { icon: 'pin', label: 'Localização', value: DECIDE_CONTEXT.location },
+  { icon: 'heart', label: 'Vontade', value: DECIDE_CONTEXT.mood },
+] as const
 
 const guides: Array<{
   current: number
@@ -46,33 +41,57 @@ const guides: Array<{
   tone: 'burger' | 'pizza' | 'sushi' | 'trophy'
   total: number
 }> = [
-  { current: 7, title: 'Guia do Hambúrguer', tone: 'burger', total: 20 },
-  { current: 5, title: 'Guia da Pizza', tone: 'pizza', total: 15 },
-  { current: 3, title: 'Guia do Sushi', tone: 'sushi', total: 12 },
-  { current: 12, title: 'Desafio Comer, marcou!', tone: 'trophy', total: 30 },
+  { current: 0, title: 'Guia do Hambúrguer', tone: 'burger', total: 20 },
+  { current: 0, title: 'Guia da Pizza', tone: 'pizza', total: 15 },
+  { current: 0, title: 'Guia do Sushi', tone: 'sushi', total: 12 },
+  { current: 0, title: 'Desafio Comer, marcou!', tone: 'trophy', total: 30 },
 ]
 
-const aiCriteria = [
-  { icon: 'wallet', label: 'Orçamento', value: 'R$ $$' },
-  { icon: 'cloud-sun', label: 'Clima', value: 'Ensolarado' },
-  { icon: 'calendar', label: 'Dia da semana', value: 'Sábado' },
-  { icon: 'pin', label: 'Localização', value: 'Próximo de nós' },
-  { icon: 'heart', label: 'Vontade', value: 'Algo diferente' },
-] as const
-
-const recentActivity: Array<{
-  detail: string
-  done: boolean
-  text: string
-  tone: 'sushi' | 'pizza' | 'burger'
-}> = [
-  { detail: 'há 2 dias', done: true, text: 'Visitamos Tan Tan Sushi', tone: 'sushi' },
-  { detail: 'há 3 dias', done: true, text: 'Adicionou Leggera Pizza aos favoritos', tone: 'pizza' },
-  { detail: 'há 5 dias', done: false, text: 'Quer voltar no Z Deli', tone: 'burger' },
-]
+function formatRelativeTime(iso: string) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const diffMs = Date.now() - date.getTime()
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (days <= 0) return 'hoje'
+  if (days === 1) return 'há 1 dia'
+  if (days < 30) return `há ${days} dias`
+  const months = Math.floor(days / 30)
+  if (months === 1) return 'há 1 mês'
+  return `há ${months} meses`
+}
 
 export function HomePage() {
+  const { profile } = useAuth()
   const [decideState, setDecideState] = useState<DecideState>({ status: 'idle' })
+  const [places, setPlaces] = useState<Place[] | null>(null)
+  const [placesError, setPlacesError] = useState<string | null>(null)
+  const [placesLoading, setPlacesLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    listPlaces({ page_size: 20, sort_by: 'updated_at', sort_order: 'desc' })
+      .then((result) => {
+        if (cancelled) return
+        setPlaces(result.items)
+        setPlacesError(null)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setPlacesError(getErrorMessage(err, 'Não foi possível carregar seus lugares.'))
+      })
+      .finally(() => {
+        if (cancelled) return
+        setPlacesLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function handlePlaceUpdated(updated: Place) {
+    setPlaces((current) => current?.map((p) => (p.id === updated.id ? updated : p)) ?? null)
+  }
 
   async function handleDecide() {
     setDecideState({ status: 'loading' })
@@ -95,10 +114,40 @@ export function HomePage() {
 
   const isLoading = decideState.status === 'loading'
 
+  const favorites = useMemo(() => {
+    if (!places) return []
+    const onlyFav = places.filter((p) => p.is_favorite)
+    return (onlyFav.length > 0 ? onlyFav : places).slice(0, 4)
+  }, [places])
+
+  const recentActivity = useMemo(() => {
+    if (!places) return []
+    return places
+      .slice()
+      .sort((a, b) => {
+        const tA = new Date(a.updated_at ?? a.created_at).getTime()
+        const tB = new Date(b.updated_at ?? b.created_at).getTime()
+        return tB - tA
+      })
+      .slice(0, 3)
+      .map((place) => ({
+        id: place.id,
+        name: place.name,
+        status: place.status,
+        when: formatRelativeTime(place.updated_at ?? place.created_at),
+        image: place.image_url,
+      }))
+  }, [places])
+
+  const greeting = profile?.full_name?.split(' ')[0] ?? 'gente'
+
   return (
     <div className={styles.layout}>
       <div className={styles.content}>
         <section className={styles.hero}>
+          <img alt="" aria-hidden="true" className={styles.heroBackdrop} src="/casal-fundo.png" />
+          <div className={styles.heroOverlay} />
+
           <div className={styles.heroCopy}>
             <h1 className={styles.heroTitle}>
               Bora decidir
@@ -107,9 +156,7 @@ export function HomePage() {
               <Icon name="heart-filled" size={22} className={styles.heroHeart} />
             </h1>
             <p className={styles.heroDescription}>
-              Deixa com a IA! Ela vai escolher o lugar
-              <br />
-              perfeito pra gente hoje.
+              {`Oi ${greeting}! Deixa com a IA — ela escolhe o lugar perfeito pra gente hoje.`}
             </p>
             <button
               className={styles.heroButton}
@@ -120,16 +167,6 @@ export function HomePage() {
               <Icon name="sparkles" size={18} />
               {isLoading ? 'Pensando...' : 'Deixar a IA decidir'}
             </button>
-          </div>
-
-          <div className={styles.heroIllustration} aria-label="Ilustração do casal" role="img">
-            <img alt="" aria-hidden="true" className={styles.heroImage} src="/casal-fundo.png" />
-            <span className={styles.heroFloatingHeart} data-position="top" aria-hidden="true">
-              <Icon name="heart" size={20} />
-            </span>
-            <span className={styles.heroFloatingHeart} data-position="bottom" aria-hidden="true">
-              <Icon name="heart-filled" size={16} />
-            </span>
           </div>
         </section>
 
@@ -180,11 +217,7 @@ export function HomePage() {
             </header>
             <p className={styles.aiResultReply}>{decideState.message}</p>
             <footer className={styles.aiResultFooter}>
-              <button
-                className={styles.aiResultRetry}
-                onClick={handleDecide}
-                type="button"
-              >
+              <button className={styles.aiResultRetry} onClick={handleDecide} type="button">
                 Tentar novamente
               </button>
             </footer>
@@ -195,42 +228,36 @@ export function HomePage() {
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
               <h2>Nossos favoritos</h2>
-              <span className={styles.sectionBadge}>8 lugares</span>
+              {places ? (
+                <span className={styles.sectionBadge}>
+                  {favorites.length} {favorites.length === 1 ? 'lugar' : 'lugares'}
+                </span>
+              ) : null}
             </div>
-            <a className={styles.sectionLink} href="#favoritos">
+            <Link className={styles.sectionLink} to="/favoritos">
               Ver todos
-            </a>
+            </Link>
           </header>
 
-          <div className={styles.favoriteGrid}>
-            {favorites.map((item) => (
-              <article key={item.name} className={styles.favoriteCard}>
-                <div className={styles.favoriteThumb} data-tone={item.tone}>
-                  <button type="button" className={styles.favoriteHeart} aria-label="Favoritar">
-                    <Icon name="heart" size={16} />
-                  </button>
-                </div>
-                <div className={styles.favoriteBody}>
-                  <strong>{item.name}</strong>
-                  <span className={styles.favoriteMeta}>
-                    {item.cuisine} <span className={styles.dot} aria-hidden="true">•</span> {item.price}
-                  </span>
-                  <div className={styles.favoriteFooter}>
-                    <span className={styles.rating}>
-                      <Icon name="star" size={14} className={styles.ratingStar} />
-                      {item.rating.toLocaleString('pt-BR', { minimumFractionDigits: 1 })}
-                    </span>
-                    <span className={styles.statusChip} data-status={item.status}>
-                      {statusLabels[item.status]}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            ))}
-            <button type="button" className={styles.scrollButton} aria-label="Ver próximos favoritos">
-              <Icon name="chevron-right" size={18} />
-            </button>
-          </div>
+          {placesError ? (
+            <p className={styles.emptyState}>{placesError}</p>
+          ) : placesLoading ? (
+            <p className={styles.emptyState}>Carregando seus lugares...</p>
+          ) : favorites.length === 0 ? (
+            <div className={styles.emptyCard}>
+              <strong>Nenhum lugar cadastrado ainda.</strong>
+              <p>Cadastrem o primeiro restaurante pra começar a montar a lista de vocês.</p>
+              <Link className={styles.primaryLink} to="/lugares/novo">
+                <Icon name="plus" size={16} /> Cadastrar primeiro lugar
+              </Link>
+            </div>
+          ) : (
+            <div className={styles.favoriteGrid}>
+              {favorites.map((place) => (
+                <PlaceCard key={place.id} onUpdated={handlePlaceUpdated} place={place} />
+              ))}
+            </div>
+          )}
         </section>
 
         <section className={styles.section}>
@@ -322,45 +349,53 @@ export function HomePage() {
         <section className={styles.railCard}>
           <header className={styles.railHeader}>
             <h2>Atividade recente</h2>
-            <a className={styles.sectionLink} href="#atividade">
+            <Link className={styles.sectionLink} to="/favoritos">
               Ver todo
-            </a>
+            </Link>
           </header>
 
-          <ul className={styles.activityList}>
-            {recentActivity.map((item) => (
-              <li key={item.text} className={styles.activityItem}>
-                <span className={styles.activityThumb} data-tone={item.tone} aria-hidden="true" />
-                <div className={styles.activityBody}>
-                  <span className={styles.activityText}>{item.text}</span>
-                  <span className={styles.activityDetail}>{item.detail}</span>
-                </div>
-                <span
-                  className={`${styles.activityIcon} ${
-                    item.done ? styles.activityIconDone : styles.activityIconStar
-                  }`}
-                >
-                  {item.done ? <Icon name="check" size={14} /> : <Icon name="star" size={14} />}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {recentActivity.length === 0 ? (
+            <p className={styles.muted}>
+              Nenhuma atividade ainda. Comece adicionando lugares aos favoritos.
+            </p>
+          ) : (
+            <ul className={styles.activityList}>
+              {recentActivity.map((item) => (
+                <li key={item.id} className={styles.activityItem}>
+                  <span className={styles.activityThumb} aria-hidden="true">
+                    {item.image ? <img alt="" src={item.image} /> : null}
+                  </span>
+                  <div className={styles.activityBody}>
+                    <span className={styles.activityText}>
+                      {PLACE_STATUS_LABELS[item.status as PlaceStatus]} · {item.name}
+                    </span>
+                    <span className={styles.activityDetail}>{item.when}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className={styles.railCard}>
           <header className={styles.railHeader}>
             <h2>Nosso grupo</h2>
-            <button type="button" className={styles.groupAddButton} aria-label="Adicionar pessoa ao grupo">
-              <Icon name="plus" size={16} />
-            </button>
+            <Link
+              aria-label="Editar perfil"
+              className={styles.groupAddButton}
+              to="/perfil"
+            >
+              <Icon name="settings" size={16} />
+            </Link>
           </header>
 
           <div className={styles.groupMembers}>
-            <span className={styles.groupAvatar} data-tone="filipe" aria-label="Filipe" />
-            <span className={styles.groupAvatar} data-tone="victor" aria-label="Victor" />
-            <button type="button" className={styles.groupInvite} aria-label="Convidar amigo">
+            <span className={styles.groupAvatarPhoto} aria-label={profile?.full_name ?? 'Membro'}>
+              <img alt="" src="/casal-fv.png" />
+            </span>
+            <Link aria-label="Convidar amigo" className={styles.groupInvite} to="/perfil">
               <Icon name="plus" size={18} />
-            </button>
+            </Link>
           </div>
         </section>
       </aside>

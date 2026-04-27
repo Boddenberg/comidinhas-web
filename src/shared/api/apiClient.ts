@@ -5,6 +5,21 @@ type HttpMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
 type RequestOptions = Omit<RequestInit, 'body' | 'method'> & {
   body?: unknown
   method?: HttpMethod
+  /** When true, don't attach Authorization header even if a token is available. */
+  skipAuth?: boolean
+  /** When true, don't trigger refresh on 401. Used internally by refresh itself. */
+  skipRefresh?: boolean
+}
+
+let getAuthToken: () => string | null = () => null
+let onUnauthorized: () => Promise<string | null> = async () => null
+
+export function configureApiClient(options: {
+  getAuthToken: () => string | null
+  onUnauthorized: () => Promise<string | null>
+}) {
+  getAuthToken = options.getAuthToken
+  onUnauthorized = options.onUnauthorized
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -78,19 +93,39 @@ class ApiClient {
     return `${normalizedBase}${normalizedPath}`
   }
 
-  async request<TResponse>(path: string, options: RequestOptions = {}) {
-    const { body, headers, method = 'GET', ...rest } = options
+  async request<TResponse>(path: string, options: RequestOptions = {}): Promise<TResponse> {
+    const { body, headers, method = 'GET', skipAuth, skipRefresh, ...rest } = options
+
+    const token = skipAuth ? null : getAuthToken()
+
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
+
+    const finalHeaders: Record<string, string> = {
+      Accept: 'application/json',
+      ...(body === undefined || isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...((headers as Record<string, string>) ?? {}),
+    }
+
+    if (token) {
+      finalHeaders.Authorization = `Bearer ${token}`
+    }
+
+    const finalBody =
+      body === undefined ? undefined : isFormData ? (body as FormData) : JSON.stringify(body)
 
     const response = await fetch(this.buildUrl(path), {
       ...rest,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      headers: {
-        Accept: 'application/json',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-        ...headers,
-      },
+      body: finalBody,
+      headers: finalHeaders,
       method,
     })
+
+    if (response.status === 401 && !skipAuth && !skipRefresh) {
+      const refreshed = await onUnauthorized()
+      if (refreshed) {
+        return this.request<TResponse>(path, { ...options, skipRefresh: true })
+      }
+    }
 
     const data = await parseResponseBody(response)
 
@@ -101,16 +136,28 @@ class ApiClient {
     return data as TResponse
   }
 
-  get<TResponse>(path: string, options?: Omit<RequestInit, 'body' | 'method'>) {
+  get<TResponse>(path: string, options?: Omit<RequestOptions, 'body' | 'method'>) {
     return this.request<TResponse>(path, { ...options, method: 'GET' })
   }
 
   post<TResponse, TBody>(
     path: string,
     body: TBody,
-    options?: Omit<RequestInit, 'body' | 'method'>,
+    options?: Omit<RequestOptions, 'body' | 'method'>,
   ) {
     return this.request<TResponse>(path, { ...options, body, method: 'POST' })
+  }
+
+  patch<TResponse, TBody>(
+    path: string,
+    body: TBody,
+    options?: Omit<RequestOptions, 'body' | 'method'>,
+  ) {
+    return this.request<TResponse>(path, { ...options, body, method: 'PATCH' })
+  }
+
+  delete<TResponse>(path: string, options?: Omit<RequestOptions, 'body' | 'method'>) {
+    return this.request<TResponse>(path, { ...options, method: 'DELETE' })
   }
 }
 
