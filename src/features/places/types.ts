@@ -143,8 +143,22 @@ export type GooglePlaceDetail = {
   website_uri?: string | null
   phone_number?: string | null
   open_now?: boolean | null
+  cover_photo_uri?: string | null
   photo_uri?: string | null
+  photos?: Array<GooglePlacePhoto | string> | null
   types?: string[]
+}
+
+export type GooglePlacePhoto = {
+  id?: string | null
+  name?: string | null
+  url?: string | null
+  uri?: string | null
+  photo_uri?: string | null
+  width?: number | null
+  height?: number | null
+  capa?: boolean | null
+  is_cover?: boolean | null
 }
 
 export type SaveGooglePlacePayload = {
@@ -153,4 +167,6 @@ export type SaveGooglePlacePayload = {
   is_favorite?: boolean
   notes?: string
   added_by?: string
+  cover_photo_uri?: string
+  photo_uris?: string[]
 }

@@ -26,6 +26,11 @@ type IconName =
   | 'x'
   | 'bolt'
   | 'arrow-right'
+  | 'pencil'
+  | 'external-link'
+  | 'utensils'
+  | 'image-plus'
+  | 'circle-check'
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName
@@ -264,6 +269,63 @@ const paths: Record<IconName, ReactElement> = {
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  ),
+  pencil: (
+    <path
+      d="M5 18.5 6.2 14 15.8 4.4a2 2 0 0 1 2.8 2.8L9 16.8 5 18.5Zm9.2-12.5 3.8 3.8"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+    />
+  ),
+  'external-link': (
+    <path
+      d="M14 5h5v5M13 11l6-6M19 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+    />
+  ),
+  utensils: (
+    <path
+      d="M7 3v8m-3-8v4a3 3 0 0 0 6 0V3M7 11v10m10-18v18m0-18c-2 1.6-3 4-3 7h3"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+    />
+  ),
+  'image-plus': (
+    <>
+      <rect x={4} y={5} width={16} height={14} rx={2.4} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <path
+        d="m7 16 3.2-3.2a1.4 1.4 0 0 1 2 0L16 16.6M15 11h4M17 9v4"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.7}
+      />
+      <circle cx={8.5} cy={9} r={1.2} fill="currentColor" />
+    </>
+  ),
+  'circle-check': (
+    <>
+      <circle cx={12} cy={12} r={8} fill="currentColor" />
+      <path
+        d="m8.5 12.2 2.3 2.3 4.8-5"
+        fill="none"
+        stroke="#fff"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+      />
+    </>
   ),
 }
 

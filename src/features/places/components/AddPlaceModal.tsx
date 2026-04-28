@@ -42,13 +42,20 @@ export function AddPlaceModal({
         role="dialog"
       >
         <header className={styles.modalHeader}>
-          <div>
-            <h2 id="add-place-title" className={styles.modalTitle}>
-              Adicionar lugar
-            </h2>
-            <p className={styles.modalSubtitle}>
-              Buscar no Google preenche endereço, foto e categoria. Ou cadastre manualmente.
-            </p>
+          <div className={styles.modalTitleRow}>
+            <span className={styles.modalMapBadge} aria-hidden="true">
+              <img alt="" src="/btn-google-maps.png" />
+            </span>
+            <div>
+              <h2 id="add-place-title" className={styles.modalTitle}>
+                {mode === 'google' ? 'É esse lugar?' : 'Adicionar lugar'}
+              </h2>
+              <p className={styles.modalSubtitle}>
+                {mode === 'google'
+                  ? 'Confira os detalhes antes de adicionar ao casal'
+                  : 'Cadastre manualmente quando o Google Maps não encontrar.'}
+              </p>
+            </div>
           </div>
           <button
             aria-label="Fechar"
