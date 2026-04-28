@@ -277,11 +277,7 @@ export function HomePage() {
                   onClick={() => openAddPlace()}
                   type="button"
                 >
-                  <span className={styles.addPlaceIcon}>
-                    <Icon name="plus" size={22} />
-                  </span>
-                  <strong>Adicionar lugar</strong>
-                  <span>Salvar do Google Maps</span>
+                  <img alt="Adicionar lugar / Salvar do Google Maps" src="/btn-google-maps.png" />
                 </button>
               </div>
 

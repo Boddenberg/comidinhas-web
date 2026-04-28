@@ -418,51 +418,26 @@
 }
 
 .addPlaceCard {
-  align-items: center;
-  background: linear-gradient(180deg, #f8f4ff 0%, #ffe9f0 100%);
-  border: 1.5px dashed rgba(47, 109, 240, 0.3);
   border-radius: var(--radius-lg);
-  color: var(--color-text);
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
+  display: block;
   font-family: inherit;
-  gap: 0.45rem;
-  justify-content: center;
   min-height: 100%;
-  padding: 1.5rem 1rem;
-  text-align: center;
-  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+  overflow: hidden;
+  padding: 0;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.addPlaceCard img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .addPlaceCard:hover {
-  background: linear-gradient(180deg, #f1ebff 0%, #ffd9e4 100%);
-  border-color: var(--color-primary);
+  box-shadow: var(--color-shadow-md);
   transform: translateY(-2px);
-}
-
-.addPlaceIcon {
-  align-items: center;
-  background: linear-gradient(135deg, #5b8def 0%, var(--color-primary) 100%);
-  border-radius: 999px;
-  box-shadow: 0 10px 24px rgba(47, 109, 240, 0.32);
-  color: #ffffff;
-  display: inline-flex;
-  height: 3rem;
-  justify-content: center;
-  margin-bottom: 0.3rem;
-  width: 3rem;
-}
-
-.addPlaceCard strong {
-  color: var(--color-text);
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.addPlaceCard span {
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
 }
 
 .scrollButton {
