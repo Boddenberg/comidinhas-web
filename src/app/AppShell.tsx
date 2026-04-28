@@ -1,20 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
+import { AddPlaceProvider, useAddPlace } from '@/features/places/AddPlaceContext'
 import { Icon } from '@/shared/ui/Icon/Icon'
 import styles from './AppShell.module.css'
 
 const navigation = [
   { icon: 'home', label: 'Início', to: '/' },
   { icon: 'heart', label: 'Favoritos', to: '/favoritos' },
-  { icon: 'plus', label: 'Cadastrar lugar', to: '/lugares/novo' },
   { icon: 'sparkles', label: 'IA Decide', to: '/chat' },
   { icon: 'search', label: 'Explorar', to: '/explorar' },
   { icon: 'user', label: 'Nosso perfil', to: '/perfil' },
 ] as const
 
 export function AppShell() {
+  return (
+    <AddPlaceProvider>
+      <Shell />
+    </AddPlaceProvider>
+  )
+}
+
+function Shell() {
   const { perfil, grupo, signOut } = useAuth()
+  const { open: openAddPlace } = useAddPlace()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -36,23 +45,12 @@ export function AppShell() {
   }, [menuOpen])
 
   const displayName = grupo?.nome || perfil?.nome || 'Comidinhas'
-  const tagline = grupo?.tipo === 'casal' ? 'casal' : 'grupo'
 
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <NavLink className={styles.brand} to="/">
-          <svg className={styles.brandMark} viewBox="0 0 40 40" aria-hidden="true">
-            <path
-              d="M20 6c2.4 0 4.4 1.7 4.4 4.4 0 1-.3 1.9-.8 2.6 1.7-.5 3.6.4 4.4 2.2.8 1.8 0 3.9-1.6 5 1.7.5 2.7 2.3 2.3 4.2-.4 1.9-2.2 3.1-4 2.9-.5 1.6-2 2.7-3.7 2.7s-3.2-1.1-3.7-2.7c-1.8.2-3.6-1-4-2.9-.4-1.9.6-3.7 2.3-4.2-1.6-1.1-2.4-3.2-1.6-5 .8-1.8 2.7-2.7 4.4-2.2-.5-.7-.8-1.6-.8-2.6 0-2.7 2-4.4 4.4-4.4Z"
-              fill="#3b82f6"
-            />
-            <path
-              d="M20 9c1.4 0 2.6 1 2.6 2.6 0 1.4-1.2 2.6-2.6 2.6s-2.6-1.2-2.6-2.6C17.4 10 18.6 9 20 9Z"
-              fill="#1d4ed8"
-            />
-            <path d="M19 26h2v8h-2z" fill="#1d4ed8" />
-          </svg>
+          <BrandLogo />
           <span className={styles.brandCopy}>
             <strong>comidinhas</strong>
             <span className={styles.brandTagline}>
@@ -88,7 +86,7 @@ export function AppShell() {
           <div className={styles.coupleInfo}>
             <strong>{displayName}</strong>
             <span>
-              {tagline === 'casal' ? 'nosso casal' : 'nosso grupo'}{' '}
+              {grupo?.tipo === 'casal' ? 'nosso casal' : 'nosso grupo'}{' '}
               <Icon name="heart-filled" size={11} className={styles.brandHeart} />
             </span>
           </div>
@@ -98,30 +96,42 @@ export function AppShell() {
       <div className={styles.body}>
         <header className={styles.topbar}>
           <label className={styles.search}>
-            <Icon name="search" size={20} className={styles.searchIcon} />
+            <Icon name="search" size={18} className={styles.searchIcon} />
             <input
               type="search"
               placeholder="Buscar restaurantes, pratos, tipos de comida..."
               className={styles.searchInput}
             />
+            <span className={styles.searchHint} aria-hidden="true">
+              ⌘K
+            </span>
           </label>
 
           <div className={styles.topbarMeta}>
-            <Link className={styles.addPlaceLink} to="/lugares/novo">
+            <button
+              className={styles.addPlaceCTA}
+              onClick={() => openAddPlace()}
+              type="button"
+            >
               <Icon name="plus" size={16} />
-              <span>Cadastrar lugar</span>
-            </Link>
+              <span>Adicionar lugar</span>
+            </button>
 
             <span className={styles.weather}>
-              <Icon name="cloud-sun" size={20} className={styles.weatherIcon} />
-              23°C
+              <Icon name="cloud-sun" size={18} className={styles.weatherIcon} />
+              <span>23°C</span>
             </span>
+
             <span className={styles.location}>
-              <Icon name="pin" size={18} />
-              São Paulo, SP
+              <Icon name="pin" size={16} />
+              <span>São Paulo, SP</span>
             </span>
+
             <button type="button" className={styles.iconButton} aria-label="Notificações">
-              <Icon name="bell" size={20} />
+              <Icon name="bell" size={18} />
+              <span className={styles.bellBadge} aria-hidden="true">
+                3
+              </span>
             </button>
 
             <div className={styles.userMenuWrap} ref={menuRef}>
@@ -136,7 +146,7 @@ export function AppShell() {
                 <span className={styles.userAvatar} aria-hidden="true">
                   <img alt="" src="/casal-fv.png" />
                 </span>
-                <Icon name="chevron-down" size={16} className={styles.userChevron} />
+                <Icon name="chevron-down" size={14} className={styles.userChevron} />
               </button>
 
               {menuOpen ? (
@@ -155,11 +165,11 @@ export function AppShell() {
                   </button>
                   <button
                     className={styles.userDropdownItem}
-                    onClick={() => navigate('/lugares/novo')}
+                    onClick={() => openAddPlace()}
                     role="menuitem"
                     type="button"
                   >
-                    <Icon name="plus" size={16} /> Cadastrar lugar
+                    <Icon name="plus" size={16} /> Adicionar lugar
                   </button>
                   <button
                     className={`${styles.userDropdownItem} ${styles.userDropdownItemDanger}`}
@@ -180,5 +190,48 @@ export function AppShell() {
         </main>
       </div>
     </div>
+  )
+}
+
+function BrandLogo() {
+  return (
+    <svg
+      aria-hidden="true"
+      className={styles.brandMark}
+      height="44"
+      viewBox="0 0 44 44"
+      width="44"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <linearGradient id="comid-brand" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stopColor="#5b8def" />
+          <stop offset="1" stopColor="#1d4ed8" />
+        </linearGradient>
+        <linearGradient id="comid-heart" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stopColor="#f37291" />
+          <stop offset="1" stopColor="#c4456a" />
+        </linearGradient>
+      </defs>
+      {/* hearts */}
+      <path
+        d="M14 6c1.6 0 2.9 1.1 2.9 2.7 0 1.5-2.9 4-2.9 4s-2.9-2.5-2.9-4C11.1 7.1 12.4 6 14 6Z"
+        fill="url(#comid-heart)"
+      />
+      <path
+        d="M22 4c1.6 0 2.9 1.1 2.9 2.7 0 1.5-2.9 4-2.9 4s-2.9-2.5-2.9-4C19.1 5.1 20.4 4 22 4Z"
+        fill="url(#comid-heart)"
+      />
+      {/* main glyph: rounded square + droplet */}
+      <path
+        d="M22 14c5.5 0 10 4.5 10 10v4a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4v-4c0-5.5 4.5-10 10-10Z"
+        fill="url(#comid-brand)"
+      />
+      <path
+        d="M22 19.5c2.4 0 4.4 1.7 4.4 4.4 0 2.4-2.4 4.4-4.4 4.4s-4.4-2-4.4-4.4c0-2.7 2-4.4 4.4-4.4Z"
+        fill="#fff"
+      />
+      <circle cx="22" cy="23.5" r="1.6" fill="url(#comid-brand)" />
+    </svg>
   )
 }

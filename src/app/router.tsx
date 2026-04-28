@@ -6,7 +6,6 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
 import { ChatPage } from '@/features/chat/pages/ChatPage'
 import { HomePage } from '@/features/home/pages/HomePage'
 import { NearbyRestaurantsPage } from '@/features/nearby-restaurants/pages/NearbyRestaurantsPage'
-import { AddPlacePage } from '@/features/places/pages/AddPlacePage'
 import { PlacesListPage } from '@/features/places/pages/PlacesListPage'
 import { AppShell } from './AppShell'
 
@@ -24,7 +23,7 @@ export const router = createBrowserRouter([
           { path: 'chat', element: <ChatPage /> },
           { path: 'favoritos', element: <PlacesListPage /> },
           { path: 'lugares', element: <PlacesListPage /> },
-          { path: 'lugares/novo', element: <AddPlacePage /> },
+          { path: 'lugares/novo', element: <Navigate replace to="/" /> },
           { path: 'restaurantes-proximos', element: <NearbyRestaurantsPage /> },
           { path: 'explorar', element: <NearbyRestaurantsPage /> },
           { path: 'perfil', element: <ProfilePage /> },

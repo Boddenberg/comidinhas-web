@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useAddPlace } from '@/features/places/AddPlaceContext'
 import { PlaceCard } from '@/features/places/components/PlaceCard'
+import { QuickAddBar } from '@/features/places/components/QuickAddBar'
 import { listPlaces } from '@/features/places/services/placesService'
 import {
   PLACE_STATUS_LABELS,
@@ -36,18 +38,19 @@ const aiCriteria = [
 ] as const
 
 const guides: Array<{
-  current: number
+  emoji: string
+  meta: string
   title: string
   tone: 'burger' | 'pizza' | 'sushi' | 'trophy'
-  total: number
 }> = [
-  { current: 0, title: 'Guia do Hambúrguer', tone: 'burger', total: 20 },
-  { current: 0, title: 'Guia da Pizza', tone: 'pizza', total: 15 },
-  { current: 0, title: 'Guia do Sushi', tone: 'sushi', total: 12 },
-  { current: 0, title: 'Desafio Comer, marcou!', tone: 'trophy', total: 30 },
+  { emoji: '🍔', meta: '12 lugares', title: 'Guia do Hambúrguer', tone: 'burger' },
+  { emoji: '🍕', meta: '18 lugares', title: 'Guia da Pizza', tone: 'pizza' },
+  { emoji: '🍣', meta: '15 lugares', title: 'Guia do Sushi', tone: 'sushi' },
+  { emoji: '🏆', meta: 'Novo desafio', title: 'Desafio Comer, marcou!', tone: 'trophy' },
 ]
 
 function formatRelativeTime(iso: string) {
+  if (!iso) return ''
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
   const diffMs = Date.now() - date.getTime()
@@ -62,6 +65,8 @@ function formatRelativeTime(iso: string) {
 
 export function HomePage() {
   const { perfil, grupo } = useAuth()
+  const { open: openAddPlace, registerOnCreated } = useAddPlace()
+
   const [decideState, setDecideState] = useState<DecideState>({ status: 'idle' })
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [placesError, setPlacesError] = useState<string | null>(null)
@@ -73,6 +78,7 @@ export function HomePage() {
       return
     }
     let cancelled = false
+    setPlacesLoading(true)
     listPlaces(grupo.id, { page_size: 20, sort_by: 'updated_at', sort_order: 'desc' })
       .then((result) => {
         if (cancelled) return
@@ -92,6 +98,13 @@ export function HomePage() {
       cancelled = true
     }
   }, [grupo])
+
+  useEffect(() => {
+    registerOnCreated((newPlace) => {
+      setPlaces((current) => (current ? [newPlace, ...current] : [newPlace]))
+    })
+    return () => registerOnCreated(null)
+  }, [registerOnCreated])
 
   function handlePlaceUpdated(updated: Place) {
     setPlaces((current) => current?.map((p) => (p.id === updated.id ? updated : p)) ?? null)
@@ -118,14 +131,8 @@ export function HomePage() {
 
   const isLoading = decideState.status === 'loading'
 
-  const favorites = useMemo(() => {
-    if (!places) return []
-    const onlyFav = places.filter((p) => p.is_favorite)
-    return (onlyFav.length > 0 ? onlyFav : places).slice(0, 4)
-  }, [places])
-
   const recentActivity = useMemo(() => {
-    if (!places) return []
+    if (!places || places.length === 0) return []
     return places
       .slice()
       .sort((a, b) => {
@@ -143,13 +150,17 @@ export function HomePage() {
       }))
   }, [places])
 
-  const greeting = perfil?.nome?.split(' ')[0] ?? 'gente'
+  const greeting = perfil?.nome?.split(' ')[0]?.toLowerCase() ?? 'gente'
+  const totalPlaces = places?.length ?? 0
 
   return (
     <div className={styles.layout}>
       <div className={styles.content}>
         <section className={styles.hero}>
-          <img alt="" aria-hidden="true" className={styles.heroBackdrop} src="/casal-fundo.png" />
+          <img alt="" aria-hidden="true" className={styles.heroImage} src="/casal-fundo.png" />
+          <div className={styles.heroSparkle} aria-hidden="true">
+            <Icon name="sparkles" size={20} />
+          </div>
           <div className={styles.heroOverlay} />
 
           <div className={styles.heroCopy}>
@@ -157,10 +168,12 @@ export function HomePage() {
               Bora decidir
               <br />
               onde <span className={styles.heroAccent}>comer</span> hoje?
-              <Icon name="heart-filled" size={22} className={styles.heroHeart} />
+              <span className={styles.heroHeart} aria-hidden="true">
+                ♥
+              </span>
             </h1>
             <p className={styles.heroDescription}>
-              {`Oi ${greeting}! Deixa com a IA — ela escolhe o lugar perfeito pra gente hoje.`}
+              Oi, {greeting}! Deixa com a IA — ela escolhe o lugar perfeito pra gente hoje.
             </p>
             <button
               className={styles.heroButton}
@@ -168,11 +181,13 @@ export function HomePage() {
               onClick={handleDecide}
               type="button"
             >
-              <Icon name="sparkles" size={18} />
+              <Icon name="sparkles" size={16} />
               {isLoading ? 'Pensando...' : 'Deixar a IA decidir'}
             </button>
           </div>
         </section>
+
+        <QuickAddBar />
 
         {decideState.status === 'loading' ? (
           <section className={styles.aiResultCard}>
@@ -203,11 +218,7 @@ export function HomePage() {
               <span className={styles.aiResultMeta}>
                 {decideState.provider} · {decideState.model}
               </span>
-              <button
-                className={styles.aiResultRetry}
-                onClick={handleDecide}
-                type="button"
-              >
+              <button className={styles.aiResultRetry} onClick={handleDecide} type="button">
                 Pedir outra sugestão
               </button>
             </footer>
@@ -231,10 +242,10 @@ export function HomePage() {
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
-              <h2>Nossos favoritos</h2>
+              <h2>Nossos lugares</h2>
               {places ? (
                 <span className={styles.sectionBadge}>
-                  {favorites.length} {favorites.length === 1 ? 'lugar' : 'lugares'}
+                  {totalPlaces} {totalPlaces === 1 ? 'lugar' : 'lugares'}
                 </span>
               ) : null}
             </div>
@@ -246,20 +257,43 @@ export function HomePage() {
           {placesError ? (
             <p className={styles.emptyState}>{placesError}</p>
           ) : placesLoading ? (
-            <p className={styles.emptyState}>Carregando seus lugares...</p>
-          ) : favorites.length === 0 ? (
-            <div className={styles.emptyCard}>
-              <strong>Nenhum lugar cadastrado ainda.</strong>
-              <p>Cadastrem o primeiro restaurante pra começar a montar a lista de vocês.</p>
-              <Link className={styles.primaryLink} to="/lugares/novo">
-                <Icon name="plus" size={16} /> Cadastrar primeiro lugar
-              </Link>
+            <div className={styles.placeGrid}>
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <article key={idx} className={styles.skeletonCard} aria-hidden="true">
+                  <span className={styles.skeletonThumb} />
+                  <span className={styles.skeletonLine} />
+                  <span className={styles.skeletonLineShort} />
+                </article>
+              ))}
             </div>
           ) : (
-            <div className={styles.favoriteGrid}>
-              {favorites.map((place) => (
-                <PlaceCard key={place.id} onUpdated={handlePlaceUpdated} place={place} />
-              ))}
+            <div className={styles.placeCarouselWrap}>
+              <div className={styles.placeGrid}>
+                {(places ?? []).slice(0, 4).map((place) => (
+                  <PlaceCard key={place.id} onUpdated={handlePlaceUpdated} place={place} />
+                ))}
+                <button
+                  className={styles.addPlaceCard}
+                  onClick={() => openAddPlace()}
+                  type="button"
+                >
+                  <span className={styles.addPlaceIcon}>
+                    <Icon name="plus" size={22} />
+                  </span>
+                  <strong>Adicionar lugar</strong>
+                  <span>Salvar do Google Maps</span>
+                </button>
+              </div>
+
+              {(places?.length ?? 0) > 4 ? (
+                <Link
+                  aria-label="Ver mais lugares"
+                  className={styles.scrollButton}
+                  to="/favoritos"
+                >
+                  <Icon name="chevron-right" size={18} />
+                </Link>
+              ) : null}
             </div>
           )}
         </section>
@@ -267,7 +301,7 @@ export function HomePage() {
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
-              <h2>Guias em andamento</h2>
+              <h2>Guias em alta</h2>
             </div>
             <a className={styles.sectionLink} href="#guias">
               Ver todos
@@ -275,21 +309,17 @@ export function HomePage() {
           </header>
 
           <div className={styles.guidesGrid}>
-            {guides.map((guide) => {
-              const progress = Math.round((guide.current / guide.total) * 100)
-              return (
-                <article key={guide.title} className={styles.guideCard} data-tone={guide.tone}>
-                  <div className={styles.guideIcon} aria-hidden="true" />
+            {guides.map((guide) => (
+              <article key={guide.title} className={styles.guideCard} data-tone={guide.tone}>
+                <span className={styles.guideEmoji} aria-hidden="true">
+                  {guide.emoji}
+                </span>
+                <div className={styles.guideText}>
                   <strong className={styles.guideTitle}>{guide.title}</strong>
-                  <span className={styles.guideProgressLabel}>
-                    {guide.current} / {guide.total}
-                  </span>
-                  <div className={styles.guideProgressBar} aria-hidden="true">
-                    <div className={styles.guideProgressFill} style={{ width: `${progress}%` }} />
-                  </div>
-                </article>
-              )
-            })}
+                  <span className={styles.guideMeta}>{guide.meta}</span>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       </div>
@@ -297,17 +327,17 @@ export function HomePage() {
       <aside className={styles.rail}>
         <section className={`${styles.railCard} ${styles.aiCard}`}>
           <header className={styles.aiHeader}>
-            <Icon name="sparkles" size={18} className={styles.aiSparkles} />
+            <Icon name="sparkles" size={16} className={styles.aiSparkles} />
             <h2>IA Decide</h2>
           </header>
 
           <div className={styles.aiBubble}>
             <span className={styles.aiAvatar} aria-hidden="true">
-              <Icon name="robot" size={22} />
+              <Icon name="robot" size={20} />
             </span>
             <p>
               Eu analiso tudo pra escolher o melhor lugar pra gente hoje!{' '}
-              <Icon name="heart-filled" size={11} className={styles.brandHeart} />
+              <span className={styles.heartTiny}>♥</span>
             </p>
           </div>
 
@@ -315,21 +345,21 @@ export function HomePage() {
             {aiCriteria.map((item) => (
               <li key={item.label}>
                 <span className={styles.aiCriteriaLabel}>
-                  <Icon name={item.icon} size={16} />
+                  <Icon name={item.icon} size={15} />
                   {item.label}
                 </span>
                 <span className={styles.aiCriteriaValue}>
                   {item.label === 'Clima' ? (
                     <>
-                      <Icon name="sun" size={14} className={styles.aiSunIcon} /> {item.value}
+                      <Icon name="sun" size={13} className={styles.aiSunIcon} /> {item.value}
                     </>
                   ) : item.label === 'Localização' ? (
                     <>
-                      <Icon name="pin" size={14} /> {item.value}
+                      <Icon name="pin" size={13} /> {item.value}
                     </>
                   ) : item.label === 'Vontade' ? (
                     <>
-                      <Icon name="heart" size={14} /> {item.value}
+                      <Icon name="heart" size={13} /> {item.value}
                     </>
                   ) : (
                     item.value
@@ -346,7 +376,7 @@ export function HomePage() {
             type="button"
           >
             {isLoading ? 'Pensando...' : 'Deixar a IA decidir'}{' '}
-            <Icon name="sparkles" size={16} />
+            <Icon name="sparkles" size={14} />
           </button>
         </section>
 
@@ -360,7 +390,7 @@ export function HomePage() {
 
           {recentActivity.length === 0 ? (
             <p className={styles.muted}>
-              Nenhuma atividade ainda. Comece adicionando lugares aos favoritos.
+              Nenhuma atividade ainda. Comecem adicionando lugares.
             </p>
           ) : (
             <ul className={styles.activityList}>
@@ -384,22 +414,28 @@ export function HomePage() {
         <section className={styles.railCard}>
           <header className={styles.railHeader}>
             <h2>Nosso grupo</h2>
-            <Link
-              aria-label="Editar perfil"
+            <button
+              aria-label="Convidar pessoa"
               className={styles.groupAddButton}
-              to="/perfil"
+              onClick={() => (window.location.href = '/perfil')}
+              type="button"
             >
-              <Icon name="settings" size={16} />
-            </Link>
+              <Icon name="plus" size={14} />
+            </button>
           </header>
 
           <div className={styles.groupMembers}>
             <span className={styles.groupAvatarPhoto} aria-label={perfil?.nome ?? 'Membro'}>
               <img alt="" src="/casal-fv.png" />
             </span>
-            <Link aria-label="Convidar amigo" className={styles.groupInvite} to="/perfil">
-              <Icon name="plus" size={18} />
-            </Link>
+            <button
+              aria-label="Convidar amigo"
+              className={styles.groupInvite}
+              onClick={() => (window.location.href = '/perfil')}
+              type="button"
+            >
+              <Icon name="plus" size={16} />
+            </button>
           </div>
         </section>
       </aside>

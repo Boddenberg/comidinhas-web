@@ -1,36 +1,108 @@
-.page {
+/* ============= Modal shell ============= */
+
+.backdrop {
+  align-items: flex-start;
+  animation: fadeIn 160ms ease;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  max-width: 50rem;
+  inset: 0;
+  justify-content: center;
+  padding: 4vh 1.5rem 6vh;
+  position: fixed;
+  z-index: 50;
 }
 
-.header {
+.modal {
+  animation: slideUp 200ms cubic-bezier(0.2, 0.7, 0.3, 1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--color-shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 1.1rem;
+  max-height: 88vh;
+  max-width: 42rem;
+  overflow: hidden;
+  padding: 1.5rem 1.7rem 1.7rem;
+  width: 100%;
 }
 
-.title {
+.modalHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.modalTitle {
   color: var(--color-text);
-  font-size: 1.6rem;
+  font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-.subtitle {
+.modalSubtitle {
   color: var(--color-text-muted);
-  font-size: 0.95rem;
-  line-height: 1.55;
-  max-width: 42rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 0.25rem;
+  max-width: 32rem;
 }
 
-.modeRow {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
+.closeButton {
+  align-items: center;
+  background: var(--color-bg-soft);
+  border: none;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
   display: inline-flex;
-  gap: 0.25rem;
+  height: 2.2rem;
+  justify-content: center;
+  transition: background-color 140ms ease, color 140ms ease;
+  width: 2.2rem;
+}
+
+.closeButton:hover {
+  background: var(--color-line);
+  color: var(--color-text);
+}
+
+.modalBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============= Tabs ============= */
+
+.modeRow {
+  background: var(--color-bg-soft);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0.2rem;
   padding: 0.25rem;
   width: fit-content;
 }
@@ -39,15 +111,15 @@
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  gap: 0.45rem;
-  padding: 0.55rem 0.95rem;
-  transition: background-color 140ms ease, color 140ms ease;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
 .modeTab:hover {
@@ -55,34 +127,39 @@
 }
 
 .modeActive {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: var(--color-shadow-sm);
+  color: var(--color-text);
 }
 
+.modeActive:hover {
+  color: var(--color-text);
+}
+
+/* ============= Panel (search + form) ============= */
+
 .panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: 1.5rem;
+  gap: 0.9rem;
 }
 
 .searchField {
   align-items: center;
   background: var(--color-bg-soft);
-  border: 1px solid var(--color-line);
+  border: 1px solid transparent;
   border-radius: 999px;
   color: var(--color-text-muted);
   display: flex;
-  gap: 0.6rem;
+  gap: 0.55rem;
   padding: 0.65rem 1rem;
-  transition: border-color 140ms ease;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 
 .searchField:focus-within {
+  background: var(--color-surface);
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-soft);
 }
 
 .searchInput {
@@ -100,6 +177,7 @@
   border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
+  list-style: none;
   margin: 0;
   overflow: hidden;
   padding: 0;
@@ -162,13 +240,13 @@
 
 .detail {
   display: grid;
-  gap: 1.2rem;
+  gap: 1.1rem;
   grid-template-columns: minmax(0, 1fr);
 }
 
 .detailPhoto {
   border-radius: var(--radius-md);
-  height: 16rem;
+  height: 14rem;
   object-fit: cover;
   width: 100%;
 }
@@ -176,24 +254,24 @@
 .detailBody {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.95rem;
 }
 
 .detailHeader {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .detailHeader strong {
   color: var(--color-text);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
-.detailHeader span {
+.detailHeader > span {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .detailMeta {
@@ -201,9 +279,9 @@
   color: var(--color-text-muted);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   gap: 0.7rem;
-  margin-top: 0.35rem;
+  margin-top: 0.25rem;
 }
 
 .detailMeta span {
@@ -214,19 +292,19 @@
 
 .gridFields {
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
 }
 
 .field span {
   color: var(--color-text);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
@@ -234,15 +312,15 @@
   border: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.45rem;
   padding: 0;
 }
 
 .fieldset legend {
   color: var(--color-text);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.3rem;
   padding: 0;
 }
 
@@ -250,22 +328,21 @@
   align-items: center;
   color: var(--color-text);
   display: flex;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   gap: 0.5rem;
 }
 
 .checkboxField input {
   accent-color: var(--color-primary);
-  height: 1.05rem;
-  width: 1.05rem;
+  height: 1rem;
+  width: 1rem;
 }
 
 .actionRow {
   align-items: center;
   display: flex;
-  gap: 0.7rem;
+  gap: 0.6rem;
   justify-content: flex-end;
-  margin-top: 0.4rem;
 }
 
 @media (max-width: 720px) {

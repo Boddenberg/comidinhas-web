@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Button } from '@/shared/ui/Button/Button'
 import { Icon } from '@/shared/ui/Icon/Icon'
+import { useAddPlace } from '../AddPlaceContext'
 import { PlaceCard } from '../components/PlaceCard'
 import { listPlaces } from '../services/placesService'
 import {
@@ -26,11 +26,19 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
 
 export function PlacesListPage() {
   const { grupo } = useAuth()
+  const { open: openAddPlace, registerOnCreated } = useAddPlace()
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    registerOnCreated((newPlace) => {
+      setPlaces((current) => (current ? [newPlace, ...current] : [newPlace]))
+    })
+    return () => registerOnCreated(null)
+  }, [registerOnCreated])
 
   useEffect(() => {
     if (!grupo) {
@@ -94,9 +102,9 @@ export function PlacesListPage() {
             {places ? `${places.length} cadastrados` : 'Carregando...'}
           </p>
         </div>
-        <Link className={styles.addLink} to="/lugares/novo">
+        <button className={styles.addLink} onClick={() => openAddPlace()} type="button">
           <Icon name="plus" size={16} /> Cadastrar lugar
-        </Link>
+        </button>
       </header>
 
       <div className={styles.toolbar}>
@@ -135,7 +143,7 @@ export function PlacesListPage() {
           <p>
             Que tal começar adicionando o primeiro? A IA pode até sugerir baseado no que cadastrar.
           </p>
-          <Button onClick={() => (window.location.href = '/lugares/novo')} variant="primary">
+          <Button onClick={() => openAddPlace()} variant="primary">
             <Icon name="plus" size={16} /> Cadastrar primeiro lugar
           </Button>
         </div>

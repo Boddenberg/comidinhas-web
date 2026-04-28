@@ -23,6 +23,9 @@ type IconName =
   | 'cloud-sun'
   | 'calendar'
   | 'robot'
+  | 'x'
+  | 'bolt'
+  | 'arrow-right'
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName
@@ -236,6 +239,31 @@ const paths: Record<IconName, ReactElement> = {
       <circle cx={15} cy={13} r={1.4} fill="currentColor" />
       <path d="M12 4v3M9 19v2M15 19v2" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" />
     </>
+  ),
+  x: (
+    <path
+      d="M6 6 18 18M6 18 18 6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+    />
+  ),
+  bolt: (
+    <path
+      d="M13 3 4 14h6l-1 7 9-11h-6l1-7Z"
+      fill="currentColor"
+    />
+  ),
+  'arrow-right': (
+    <path
+      d="M5 12h14m-5-5 5 5-5 5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   ),
 }
 
