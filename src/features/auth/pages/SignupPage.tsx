@@ -51,7 +51,7 @@ export function SignupPage() {
     >
       <form className={styles.form} onSubmit={handleSubmit}>
         <label className={styles.field}>
-          <span>Nome do casal ou da pessoa</span>
+          <span>Nome da pessoa</span>
           <input
             autoComplete="name"
             autoFocus
@@ -59,7 +59,7 @@ export function SignupPage() {
             disabled={submitting}
             minLength={2}
             onChange={(e) => setNome(e.target.value)}
-            placeholder="Filipe & Victor"
+            placeholder="Filipe"
             required
             type="text"
             value={nome}

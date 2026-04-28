@@ -15,6 +15,7 @@ type IconName =
   | 'pin'
   | 'bell'
   | 'chevron-down'
+  | 'chevron-left'
   | 'chevron-right'
   | 'star'
   | 'plus'
@@ -180,6 +181,16 @@ const paths: Record<IconName, ReactElement> = {
   'chevron-down': (
     <path
       d="m6 9 6 6 6-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
+  'chevron-left': (
+    <path
+      d="m15 6-6 6 6 6"
       fill="none"
       stroke="currentColor"
       strokeWidth={1.8}

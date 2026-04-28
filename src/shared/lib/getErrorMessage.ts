@@ -6,7 +6,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function getErrorMessage(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
-    return error.message
+    return error.requestId ? `${error.message} ID: ${error.requestId}` : error.message
   }
 
   if (error instanceof Error && error.message.trim().length > 0) {

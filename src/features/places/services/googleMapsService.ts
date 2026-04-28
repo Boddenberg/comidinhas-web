@@ -1,4 +1,4 @@
-import { ApiError, apiClient } from '@/shared/api/apiClient'
+import { apiClient } from '@/shared/api/apiClient'
 import { lugarToPlace } from './placesService'
 import type {
   GoogleAutocompleteRequest,
@@ -28,9 +28,7 @@ type SaveFromGoogleRequest = {
   status?: string
   favorito?: boolean
   notas?: string
-  adicionado_por?: string
-  foto_capa_url?: string
-  fotos_urls?: string[]
+  adicionado_por_perfil_id?: string
 }
 
 export async function saveGooglePlace(
@@ -44,39 +42,14 @@ export async function saveGooglePlace(
   if (payload.status) body.status = payload.status
   if (payload.is_favorite !== undefined) body.favorito = payload.is_favorite
   if (payload.notes !== undefined) body.notas = payload.notes
-  if (payload.added_by !== undefined) body.adicionado_por = payload.added_by
-  if (payload.cover_photo_uri !== undefined) body.foto_capa_url = payload.cover_photo_uri
-  if (payload.photo_uris !== undefined) body.fotos_urls = payload.photo_uris
-
-  let lugar: LugarResponse
-  try {
-    lugar = await apiClient.post<LugarResponse, SaveFromGoogleRequest>(
-      '/api/v1/google-maps/places/save',
-      body,
-    )
-  } catch (error) {
-    const canRetryWithoutPhotoFields =
-      error instanceof ApiError &&
-      (error.status === 400 || error.status === 422) &&
-      (body.foto_capa_url !== undefined || body.fotos_urls !== undefined)
-
-    if (!canRetryWithoutPhotoFields) {
-      throw error
-    }
-
-    const fallbackBody: SaveFromGoogleRequest = {
-      place_id: body.place_id,
-      grupo_id: body.grupo_id,
-      status: body.status,
-      favorito: body.favorito,
-      notas: body.notas,
-      adicionado_por: body.adicionado_por,
-    }
-    lugar = await apiClient.post<LugarResponse, SaveFromGoogleRequest>(
-      '/api/v1/google-maps/places/save',
-      fallbackBody,
-    )
+  if (payload.added_by_profile_id !== undefined) {
+    body.adicionado_por_perfil_id = payload.added_by_profile_id
   }
+
+  const lugar = await apiClient.post<LugarResponse, SaveFromGoogleRequest>(
+    '/api/v1/google-maps/places/save',
+    body,
+  )
 
   return lugarToPlace(lugar)
 }

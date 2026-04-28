@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
@@ -8,6 +8,7 @@ import {
   getGooglePlaceDetails,
   saveGooglePlace,
 } from '../services/googleMapsService'
+import { getPlace, uploadPlacePhoto } from '../services/placesService'
 import {
   type GoogleAutocompleteSuggestion,
   type GooglePlaceDetail,
@@ -19,7 +20,9 @@ import styles from './AddPlace.module.css'
 
 type GoogleSearchPanelProps = {
   onSaved: (place: Place) => void
+  initialPlaceId?: string
   initialQuery?: string
+  onSelectionChange?: (hasSelection: boolean) => void
 }
 
 type GalleryPhoto = {
@@ -28,6 +31,7 @@ type GalleryPhoto = {
   source: 'backend' | 'local'
   url: string
   coverHint?: boolean
+  file?: File
 }
 
 function getPhotoUrl(photo: GooglePlacePhoto | string) {
@@ -102,13 +106,23 @@ function formatRating(rating?: number | null) {
   })
 }
 
+function formatReviewCount(count?: number | null) {
+  if (!count) return null
+  return `${count.toLocaleString('pt-BR')} avaliações`
+}
+
 function formatOpenNow(openNow?: boolean | null) {
   if (openNow === true) return 'Aberto agora'
   if (openNow === false) return 'Fechado agora'
   return 'Horário indisponível'
 }
 
-export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPanelProps) {
+export function GoogleSearchPanel({
+  initialPlaceId,
+  initialQuery = '',
+  onSaved,
+  onSelectionChange,
+}: GoogleSearchPanelProps) {
   const { grupo, perfil } = useAuth()
   const [query, setQuery] = useState(initialQuery)
   const [suggestions, setSuggestions] = useState<GoogleAutocompleteSuggestion[]>([])
@@ -117,10 +131,12 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
 
   const [selected, setSelected] = useState<GooglePlaceDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [pendingPlaceId, setPendingPlaceId] = useState(initialPlaceId ?? null)
 
   const [activePhotoId, setActivePhotoId] = useState<string | null>(null)
   const [coverPhotoId, setCoverPhotoId] = useState<string | null>(null)
   const [localPhotos, setLocalPhotos] = useState<GalleryPhoto[]>([])
+  const [thumbStartIndex, setThumbStartIndex] = useState(0)
 
   const [status, setStatus] = useState<PlaceStatus>('quero_ir')
   const [favorite, setFavorite] = useState(true)
@@ -138,9 +154,69 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
     gallery.find((photo) => photo.id === coverPhotoId) ?? hintedCoverPhoto ?? gallery[0]
   const activePhoto = gallery.find((photo) => photo.id === activePhotoId) ?? coverPhoto
   const activePhotoIndex = activePhoto ? gallery.findIndex((photo) => photo.id === activePhoto.id) : -1
+  const canCycleThumbs = gallery.length > 4
+  const visibleThumbs = canCycleThumbs
+    ? Array.from({ length: 4 }, (_, offset) => gallery[(thumbStartIndex + offset) % gallery.length])
+    : gallery
+  const reviewCount = selected ? formatReviewCount(selected.user_rating_count) : null
+
+  const applySelectedDetail = useCallback((detail: GooglePlaceDetail) => {
+    const photos = normalizePhotos(detail, [])
+    const firstCover = photos.find((photo) => photo.coverHint) ?? photos[0]
+
+    setSelected(detail)
+    setSuggestions([])
+    setLocalPhotos([])
+    setActivePhotoId(firstCover?.id ?? null)
+    setCoverPhotoId(firstCover?.id ?? null)
+    setThumbStartIndex(0)
+    setFavorite(true)
+    setStatus('quero_ir')
+    setNotes('')
+  }, [])
 
   useEffect(() => {
-    if (selected) return undefined
+    onSelectionChange?.(Boolean(selected) || Boolean(pendingPlaceId))
+  }, [onSelectionChange, pendingPlaceId, selected])
+
+  useEffect(() => {
+    if (!pendingPlaceId) return undefined
+
+    let cancelled = false
+    setDetailLoading(true)
+    setSearchError(null)
+
+    getGooglePlaceDetails(pendingPlaceId)
+      .then((detail) => {
+        if (cancelled) return
+        applySelectedDetail(detail)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setSearchError(getErrorMessage(err, 'Não foi possível abrir esse lugar.'))
+      })
+      .finally(() => {
+        if (cancelled) return
+        setDetailLoading(false)
+        setPendingPlaceId(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [applySelectedDetail, pendingPlaceId])
+
+  useEffect(() => {
+    if (gallery.length <= 4) {
+      setThumbStartIndex(0)
+      return
+    }
+
+    setThumbStartIndex((current) => current % gallery.length)
+  }, [gallery.length])
+
+  useEffect(() => {
+    if (selected || pendingPlaceId) return undefined
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const trimmedQuery = query.trim()
@@ -158,9 +234,10 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
       try {
         const result = await autocompletePlaces({
           input: trimmedQuery,
-          included_primary_types: ['restaurant', 'food', 'cafe', 'bakery', 'bar'],
+          included_primary_types: ['restaurant', 'food', 'cafe', 'bar'],
+          included_region_codes: ['br'],
           session_token: sessionTokenRef.current,
-          max_results: 6,
+          max_results: 5,
           include_query_predictions: false,
         })
         setSuggestions(result.suggestions ?? [])
@@ -175,7 +252,7 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [query, selected])
+  }, [pendingPlaceId, query, selected])
 
   useEffect(
     () => () => {
@@ -190,15 +267,7 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
     setSearchError(null)
     try {
       const detail = await getGooglePlaceDetails(suggestion.place_id)
-      const photos = normalizePhotos(detail, [])
-      const firstCover = photos.find((photo) => photo.coverHint) ?? photos[0]
-
-      setSelected(detail)
-      setSuggestions([])
-      setLocalPhotos([])
-      setActivePhotoId(firstCover?.id ?? null)
-      setCoverPhotoId(firstCover?.id ?? null)
-      setFavorite(true)
+      applySelectedDetail(detail)
       sessionTokenRef.current = crypto.randomUUID()
     } catch (err: unknown) {
       setSearchError(getErrorMessage(err, 'Não foi possível abrir esse lugar.'))
@@ -207,9 +276,10 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
     }
   }
 
-  function handleResetSelection() {
+  function handleResetSelection(nextQuery = '') {
+    setPendingPlaceId(null)
     setSelected(null)
-    setQuery('')
+    setQuery(nextQuery)
     setSuggestions([])
     setNotes('')
     setStatus('quero_ir')
@@ -217,6 +287,11 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
     setLocalPhotos([])
     setActivePhotoId(null)
     setCoverPhotoId(null)
+    setThumbStartIndex(0)
+  }
+
+  function handleEditSelection() {
+    handleResetSelection(selected?.display_name ?? query)
   }
 
   function handleAddPhoto(event: ChangeEvent<HTMLInputElement>) {
@@ -225,6 +300,7 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
 
     const url = URL.createObjectURL(file)
     const photo: GalleryPhoto = {
+      file,
       id: `local-${Date.now()}-${file.name}`,
       label: file.name,
       source: 'local',
@@ -234,6 +310,7 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
     localObjectUrlsRef.current.push(url)
     setLocalPhotos((current) => [...current, photo])
     setActivePhotoId(photo.id)
+    setThumbStartIndex(gallery.length)
     if (!coverPhotoId) setCoverPhotoId(photo.id)
     event.target.value = ''
   }
@@ -241,6 +318,13 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
   function handleSetCover() {
     if (!activePhoto) return
     setCoverPhotoId(activePhoto.id)
+  }
+
+  function handleThumbStep(direction: -1 | 1) {
+    if (!canCycleThumbs) return
+    const nextIndex = (thumbStartIndex + direction + gallery.length) % gallery.length
+    setThumbStartIndex(nextIndex)
+    setActivePhotoId(gallery[nextIndex]?.id ?? null)
   }
 
   async function handleSave() {
@@ -253,10 +337,18 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
         status,
         is_favorite: favorite,
         notes: notes.trim() || undefined,
-        added_by: perfil?.nome,
-        cover_photo_uri: coverPhoto?.url,
-        photo_uris: gallery.map((photo) => photo.url),
+        added_by_profile_id: perfil?.id,
       })
+      const localUploads = gallery.filter((photo) => photo.source === 'local' && photo.file)
+      if (localUploads.length > 0) {
+        await Promise.all(
+          localUploads.map((photo) =>
+            uploadPlacePhoto(saved.id, photo.file as File, photo.id === coverPhoto?.id),
+          ),
+        )
+        onSaved(await getPlace(saved.id))
+        return
+      }
       onSaved(saved)
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err, 'Não foi possível salvar agora.'))
@@ -266,6 +358,20 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
   }
 
   if (!selected) {
+    if (detailLoading || pendingPlaceId) {
+      return (
+        <div className={styles.placeLoading}>
+          <span className={styles.placeLoadingIcon}>
+            <Icon name="sparkles" size={22} />
+          </span>
+          <div>
+            <strong>Abrindo detalhes do restaurante</strong>
+            <p>Estamos trazendo fotos, endereço e sinais do Google Maps.</p>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className={styles.panel}>
         <label className={styles.searchField}>
@@ -316,13 +422,15 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
 
   return (
     <div className={styles.placeConfirm}>
-      <section className={styles.galleryColumn}>
+      <section className={styles.galleryColumn} aria-label="Fotos do restaurante">
         <div className={styles.heroPhoto}>
           {activePhoto ? (
             <img alt={selected.display_name} src={activePhoto.url} />
           ) : (
             <span className={styles.photoFallback}>{selected.display_name.slice(0, 1)}</span>
           )}
+
+          <div className={styles.heroPhotoShade} aria-hidden="true" />
 
           {gallery.length > 0 ? (
             <span className={styles.photoCounter}>
@@ -338,24 +446,50 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
           ) : null}
         </div>
 
-        <div className={styles.thumbRow}>
-          {gallery.map((photo) => (
-            <button
-              aria-label={`Ver ${photo.label}`}
-              className={styles.thumbButton}
-              data-active={photo.id === activePhoto?.id}
-              key={photo.id}
-              onClick={() => setActivePhotoId(photo.id)}
-              type="button"
-            >
-              <img alt="" src={photo.url} />
-              {photo.id === coverPhoto?.id ? (
-                <span className={styles.thumbCheck}>
-                  <Icon name="circle-check" size={21} />
-                </span>
-              ) : null}
-            </button>
-          ))}
+        <div className={styles.thumbStrip}>
+          <div className={styles.thumbCarousel}>
+            {canCycleThumbs ? (
+              <button
+                aria-label="Fotos anteriores"
+                className={`${styles.thumbStep} ${styles.thumbStepPrev}`}
+                onClick={() => handleThumbStep(-1)}
+                type="button"
+              >
+                <Icon name="chevron-left" size={16} />
+              </button>
+            ) : null}
+
+            <div className={styles.thumbRow}>
+              {visibleThumbs.map((photo) => (
+                <button
+                  aria-label={`Ver ${photo.label}`}
+                  className={styles.thumbButton}
+                  data-active={photo.id === activePhoto?.id}
+                  key={photo.id}
+                  onClick={() => setActivePhotoId(photo.id)}
+                  type="button"
+                >
+                  <img alt="" src={photo.url} />
+                  {photo.id === coverPhoto?.id ? (
+                    <span className={styles.thumbCheck}>
+                      <Icon name="circle-check" size={18} />
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+
+            {canCycleThumbs ? (
+              <button
+                aria-label="Próximas fotos"
+                className={`${styles.thumbStep} ${styles.thumbStepNext}`}
+                onClick={() => handleThumbStep(1)}
+                type="button"
+              >
+                <Icon name="chevron-right" size={16} />
+              </button>
+            ) : null}
+          </div>
 
           <label className={styles.addPhotoButton}>
             <Icon name="image-plus" size={21} />
@@ -368,12 +502,22 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
           <p className={styles.coverHint}>
             <Icon name="sparkles" size={12} />
             Esta será a foto de capa do lugar
-            <Icon name="sparkles" size={12} />
           </p>
         ) : null}
       </section>
 
       <section className={styles.detailsColumn}>
+        <div className={styles.confirmToolbar}>
+          <span className={styles.sourceChip}>
+            <img alt="" src="/btn-google-maps.png" />
+            Google Maps
+          </span>
+          <button className={styles.editPlaceButton} onClick={handleEditSelection} type="button">
+            <Icon name="pencil" size={15} />
+            Editar
+          </button>
+        </div>
+
         <header className={styles.confirmHeader}>
           <h3>{selected.display_name}</h3>
           <p>
@@ -390,6 +534,7 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
           <span>
             <Icon name="star" size={14} />
             {formatRating(selected.rating)}
+            {reviewCount ? <small>{reviewCount}</small> : null}
           </span>
           <span className={styles.priceChip}>{formatPrice(selected)}</span>
           <span className={styles.openChip} data-open={selected.open_now === true}>
@@ -398,47 +543,48 @@ export function GoogleSearchPanel({ initialQuery = '', onSaved }: GoogleSearchPa
           </span>
         </div>
 
-        <div className={styles.divider} />
-
-        <fieldset className={styles.fieldset}>
-          <legend>Como esse lugar entra na nossa lista?</legend>
+        <section className={styles.decisionPanel}>
+          <div>
+            <span className={styles.panelEyebrow}>Decisão do casal</span>
+            <h4>Como esse lugar entra na nossa lista?</h4>
+          </div>
           <StatusSwitcher onChange={setStatus} value={status} />
-        </fieldset>
+        </section>
 
-        <div className={styles.divider} />
+        <section className={styles.couplePanel}>
+          <div className={styles.favoriteRow}>
+            <span>
+              <Icon name={favorite ? 'heart-filled' : 'heart'} size={21} />
+              Favorito do casal
+            </span>
 
-        <div className={styles.favoriteRow}>
-          <span>
-            <Icon name="heart" size={21} />
-            Favorito do casal
-          </span>
+            <button
+              aria-checked={favorite}
+              className={styles.favoriteToggle}
+              data-active={favorite}
+              onClick={() => setFavorite((current) => !current)}
+              role="switch"
+              type="button"
+            >
+              <span />
+            </button>
+          </div>
 
-          <button
-            aria-checked={favorite}
-            className={styles.favoriteToggle}
-            data-active={favorite}
-            onClick={() => setFavorite((current) => !current)}
-            role="switch"
-            type="button"
-          >
-            <span />
-          </button>
-        </div>
-
-        <label className={styles.notesField}>
-          <textarea
-            maxLength={300}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="Observações opcionais..."
-            value={notes}
-          />
-          <span>{notes.length}/300</span>
-        </label>
+          <label className={styles.notesField}>
+            <textarea
+              maxLength={300}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Observações opcionais para vocês dois..."
+              value={notes}
+            />
+            <span>{notes.length}/300</span>
+          </label>
+        </section>
 
         {saveError ? <p className={styles.error}>{saveError}</p> : null}
 
         <div className={styles.confirmActions}>
-          <button className={styles.rejectButton} onClick={handleResetSelection} type="button">
+          <button className={styles.rejectButton} onClick={() => handleResetSelection()} type="button">
             <Icon name="x" size={17} />
             Não é esse
           </button>

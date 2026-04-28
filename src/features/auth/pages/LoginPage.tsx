@@ -43,7 +43,7 @@ export function LoginPage() {
           </Link>
         </>
       }
-      subtitle="Entre com o e-mail que vocês usaram pra cadastrar a conta do casal."
+      subtitle="Entre com o e-mail do perfil cadastrado no app."
       title="Bem-vindos de volta"
     >
       <form className={styles.form} onSubmit={handleSubmit}>

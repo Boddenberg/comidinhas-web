@@ -5,20 +5,24 @@ export type Perfil = {
   bio: string | null
   cidade: string | null
   foto_url: string | null
+  grupo_individual_id?: string | null
   criado_em?: string | null
   atualizado_em?: string | null
 }
 
 export type Membro = {
+  perfil_id?: string
   nome: string
   email: string | null
+  papel?: 'dono' | 'membro' | string
 }
 
 export type Grupo = {
   id: string
   nome: string
-  tipo: 'casal' | 'grupo' | string
+  tipo: 'individual' | 'casal' | 'grupo' | string
   descricao: string | null
+  dono_perfil_id?: string | null
   membros: Membro[]
   criado_em?: string | null
   atualizado_em?: string | null

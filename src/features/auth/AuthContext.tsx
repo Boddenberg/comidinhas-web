@@ -10,6 +10,7 @@ import {
 import { clearSession, readSession, writeSession } from './lib/tokenStorage'
 import {
   fetchGrupo,
+  fetchPerfilContextos,
   fetchProfile,
   signin as signinRequest,
   signup as signupRequest,
@@ -29,6 +30,8 @@ type AuthContextValue = {
   status: AuthStatus
   perfil: Perfil | null
   grupo: Grupo | null
+  grupos: Grupo[]
+  selectGrupo: (grupoId: string) => Promise<void>
   signIn: (payload: SigninRequest) => Promise<void>
   signUp: (payload: SignupRequest) => Promise<void>
   signOut: () => void
@@ -45,16 +48,21 @@ export function AuthProvider({ children }: ProviderProps) {
   const [status, setStatus] = useState<AuthStatus>('idle')
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [grupo, setGrupo] = useState<Grupo | null>(null)
+  const [grupos, setGrupos] = useState<Grupo[]>([])
 
-  const persist = useCallback((nextPerfil: Perfil | null, nextGrupo: Grupo | null) => {
-    if (nextPerfil && nextGrupo) {
-      writeSession({ perfil_id: nextPerfil.id, grupo_id: nextGrupo.id })
-    } else {
-      clearSession()
-    }
-    setPerfil(nextPerfil)
-    setGrupo(nextGrupo)
-  }, [])
+  const persist = useCallback(
+    (nextPerfil: Perfil | null, nextGrupo: Grupo | null, nextGrupos: Grupo[] = []) => {
+      if (nextPerfil && nextGrupo) {
+        writeSession({ perfil_id: nextPerfil.id, grupo_id: nextGrupo.id })
+      } else {
+        clearSession()
+      }
+      setPerfil(nextPerfil)
+      setGrupo(nextGrupo)
+      setGrupos(nextPerfil && nextGrupo ? nextGrupos : [])
+    },
+    [],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -64,11 +72,24 @@ export function AuthProvider({ children }: ProviderProps) {
       return
     }
 
-    Promise.all([fetchProfile(stored.perfil_id), fetchGrupo(stored.grupo_id)])
-      .then(([loadedPerfil, loadedGrupo]) => {
+    fetchProfile(stored.perfil_id)
+      .then(async (loadedPerfil) => {
+        const loadedGrupos = await fetchPerfilContextos(loadedPerfil.id).catch(
+          () => [] as Grupo[],
+        )
+        const grupoFromContextos = loadedGrupos.find((item) => item.id === stored.grupo_id)
+        const loadedGrupo =
+          grupoFromContextos ?? (await fetchGrupo(stored.grupo_id).catch(() => null))
+
+        if (!loadedGrupo) {
+          throw new Error('Grupo salvo nao encontrado.')
+        }
+
         if (cancelled) return
-        setPerfil(loadedPerfil)
-        setGrupo(loadedGrupo)
+        const nextGrupos = loadedGrupos.some((item) => item.id === loadedGrupo.id)
+          ? loadedGrupos
+          : [loadedGrupo, ...loadedGrupos]
+        persist(loadedPerfil, loadedGrupo, nextGrupos)
         setStatus('authenticated')
       })
       .catch(() => {
@@ -80,12 +101,12 @@ export function AuthProvider({ children }: ProviderProps) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [persist])
 
   const signIn = useCallback(
     async (payload: SigninRequest) => {
-      const { perfil: p, grupo: g } = await signinRequest(payload)
-      persist(p, g)
+      const { perfil: p, grupo: g, grupos: gs } = await signinRequest(payload)
+      persist(p, g, gs)
       setStatus('authenticated')
     },
     [persist],
@@ -93,8 +114,8 @@ export function AuthProvider({ children }: ProviderProps) {
 
   const signUp = useCallback(
     async (payload: SignupRequest) => {
-      const { perfil: p, grupo: g } = await signupRequest(payload)
-      persist(p, g)
+      const { perfil: p, grupo: g, grupos: gs } = await signupRequest(payload)
+      persist(p, g, gs)
       setStatus('authenticated')
     },
     [persist],
@@ -104,6 +125,21 @@ export function AuthProvider({ children }: ProviderProps) {
     persist(null, null)
     setStatus('unauthenticated')
   }, [persist])
+
+  const selectGrupo = useCallback(
+    async (grupoId: string) => {
+      if (!perfil) {
+        throw new Error('Sem perfil ativo.')
+      }
+
+      const nextGrupo = grupos.find((item) => item.id === grupoId) ?? (await fetchGrupo(grupoId))
+      const nextGrupos = grupos.some((item) => item.id === nextGrupo.id)
+        ? grupos
+        : [nextGrupo, ...grupos]
+      persist(perfil, nextGrupo, nextGrupos)
+    },
+    [grupos, perfil, persist],
+  )
 
   const updatePerfil = useCallback(
     async (payload: ProfileUpdateRequest) => {
@@ -122,12 +158,14 @@ export function AuthProvider({ children }: ProviderProps) {
       status,
       perfil,
       grupo,
+      grupos,
+      selectGrupo,
       signIn,
       signUp,
       signOut,
       updatePerfil,
     }),
-    [grupo, perfil, signIn, signOut, signUp, status, updatePerfil],
+    [grupo, grupos, perfil, selectGrupo, signIn, signOut, signUp, status, updatePerfil],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

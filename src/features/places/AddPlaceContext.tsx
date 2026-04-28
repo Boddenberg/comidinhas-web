@@ -13,6 +13,7 @@ import type { Place } from './types'
 type OpenOptions = {
   initialQuery?: string
   initialMode?: 'google' | 'manual'
+  initialPlaceId?: string
 }
 
 type AddPlaceContextValue = {
@@ -64,6 +65,7 @@ export function AddPlaceProvider({ children }: ProviderProps) {
       {isOpen ? (
         <AddPlaceModal
           initialMode={options.initialMode ?? 'google'}
+          initialPlaceId={options.initialPlaceId}
           initialQuery={options.initialQuery ?? ''}
           onClose={close}
           onCreated={handleCreated}

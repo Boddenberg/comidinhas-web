@@ -7,7 +7,8 @@ import styles from './AppShell.module.css'
 
 const navigation = [
   { icon: 'home', label: 'Início', to: '/' },
-  { icon: 'heart', label: 'Favoritos', to: '/favoritos' },
+  { icon: 'heart', label: 'Lugares', to: '/lugares' },
+  { icon: 'bookmark', label: 'Guias', to: '/guias' },
   { icon: 'sparkles', label: 'IA Decide', to: '/chat' },
   { icon: 'search', label: 'Explorar', to: '/explorar' },
   { icon: 'user', label: 'Nosso perfil', to: '/perfil' },

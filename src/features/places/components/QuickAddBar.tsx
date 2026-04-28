@@ -56,7 +56,11 @@ export function QuickAddBar() {
 
   function handlePick(suggestion: GoogleAutocompleteSuggestion) {
     if (!suggestion.place_id) return
-    open({ initialMode: 'google', initialQuery: suggestion.main_text?.text ?? query })
+    open({
+      initialMode: 'google',
+      initialPlaceId: suggestion.place_id,
+      initialQuery: suggestion.main_text?.text ?? query,
+    })
     setQuery('')
     setFocused(false)
     sessionTokenRef.current = crypto.randomUUID()

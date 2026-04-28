@@ -52,7 +52,7 @@ export function ManualPlaceForm({ onSaved }: ManualPlaceFormProps) {
         notes: notes.trim() || undefined,
         status,
         is_favorite: favorite,
-        added_by: perfil?.nome,
+        added_by_profile_id: perfil?.id,
       })
       onSaved(created)
     } catch (err: unknown) {

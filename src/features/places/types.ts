@@ -11,15 +11,34 @@ export const PLACE_STATUS_LABELS: Record<PlaceStatus, string> = {
   quero_ir: 'Quero ir',
   fomos: 'Fomos',
   quero_voltar: 'Quero voltar',
-  nao_curti: 'Não voltaremos',
+  nao_curti: 'Nao voltaremos',
 }
 
 export type PlacePhoto = {
   id: string
   url: string
-  caminho: string
+  caminho: string | null
   ordem: number
   capa: boolean
+}
+
+export type LugarFotoResponse = {
+  id: string
+  lugar_id?: string
+  place_id?: string
+  grupo_id?: string
+  group_id?: string
+  public_url?: string | null
+  url?: string | null
+  foto_url?: string | null
+  storage_path?: string | null
+  caminho?: string | null
+  sort_order?: number | null
+  ordem?: number | null
+  is_cover?: boolean | null
+  capa?: boolean | null
+  created_at?: string | null
+  criado_em?: string | null
 }
 
 /** Frontend-friendly place shape. Mapped from BFF LugarResponse (pt). */
@@ -37,6 +56,7 @@ export type Place = {
   is_favorite: boolean
   image_url: string | null
   rating?: number | null
+  user_rating_count?: number | null
   added_by: string | null
   created_at: string | null
   updated_at: string | null
@@ -57,9 +77,10 @@ export type LugarResponse = {
   status: PlaceStatus
   favorito: boolean
   imagem_capa: string | null
-  fotos: PlacePhoto[]
-  adicionado_por: string | null
-  extra: Record<string, unknown>
+  fotos?: LugarFotoResponse[] | PlacePhoto[] | null
+  adicionado_por?: string | null
+  adicionado_por_perfil_id?: string | null
+  extra?: Record<string, unknown> | null
   criado_em: string | null
   atualizado_em: string | null
 }
@@ -80,6 +101,9 @@ export type PlaceListParams = {
   is_favorite?: boolean
   category?: string
   neighborhood?: string
+  price_range?: number
+  price_range_min?: number
+  price_range_max?: number
   sort_by?: 'created_at' | 'updated_at' | 'name'
   sort_order?: 'asc' | 'desc'
 }
@@ -94,7 +118,7 @@ export type CreatePlacePayload = {
   notes?: string
   status?: PlaceStatus
   is_favorite?: boolean
-  added_by?: string
+  added_by_profile_id?: string
 }
 
 export type UpdatePlacePayload = Partial<CreatePlacePayload>
@@ -121,9 +145,16 @@ export type GoogleAutocompleteRequest = {
     radius_meters: number
   }
   included_primary_types?: string[]
+  included_region_codes?: string[]
   session_token?: string
   max_results?: number
   include_query_predictions?: boolean
+}
+
+export type GooglePhotoAttribution = {
+  display_name: string
+  uri?: string | null
+  photo_uri?: string | null
 }
 
 export type GooglePlaceDetail = {
@@ -143,8 +174,8 @@ export type GooglePlaceDetail = {
   website_uri?: string | null
   phone_number?: string | null
   open_now?: boolean | null
-  cover_photo_uri?: string | null
   photo_uri?: string | null
+  cover_photo_uri?: string | null
   photos?: Array<GooglePlacePhoto | string> | null
   types?: string[]
 }
@@ -156,7 +187,10 @@ export type GooglePlacePhoto = {
   uri?: string | null
   photo_uri?: string | null
   width?: number | null
+  width_px?: number | null
   height?: number | null
+  height_px?: number | null
+  attributions?: GooglePhotoAttribution[]
   capa?: boolean | null
   is_cover?: boolean | null
 }
@@ -166,7 +200,5 @@ export type SaveGooglePlacePayload = {
   status?: PlaceStatus
   is_favorite?: boolean
   notes?: string
-  added_by?: string
-  cover_photo_uri?: string
-  photo_uris?: string[]
+  added_by_profile_id?: string
 }

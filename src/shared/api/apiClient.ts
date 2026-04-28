@@ -46,11 +46,13 @@ function getApiErrorMessage(status: number, data: unknown) {
 
 export class ApiError extends Error {
   readonly data: unknown
+  readonly requestId: string | null
   readonly status: number
 
-  constructor(message: string, status: number, data: unknown) {
+  constructor(message: string, status: number, data: unknown, requestId: string | null = null) {
     super(message)
     this.name = 'ApiError'
+    this.requestId = requestId
     this.status = status
     this.data = data
   }
@@ -102,7 +104,12 @@ class ApiClient {
     const data = await parseResponseBody(response)
 
     if (!response.ok) {
-      throw new ApiError(getApiErrorMessage(response.status, data), response.status, data)
+      throw new ApiError(
+        getApiErrorMessage(response.status, data),
+        response.status,
+        data,
+        response.headers.get('x-request-id'),
+      )
     }
 
     return data as TResponse

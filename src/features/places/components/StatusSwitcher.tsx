@@ -1,3 +1,4 @@
+import { Icon } from '@/shared/ui/Icon/Icon'
 import { PLACE_STATUSES, PLACE_STATUS_LABELS, type PlaceStatus } from '../types'
 import styles from './StatusSwitcher.module.css'
 
@@ -6,6 +7,13 @@ type StatusSwitcherProps = {
   onChange: (next: PlaceStatus) => void
   disabled?: boolean
   size?: 'sm' | 'md'
+}
+
+const STATUS_ICONS: Record<PlaceStatus, Parameters<typeof Icon>[0]['name']> = {
+  quero_ir: 'pin',
+  fomos: 'check',
+  quero_voltar: 'heart-filled',
+  nao_curti: 'x',
 }
 
 export function StatusSwitcher({
@@ -28,6 +36,7 @@ export function StatusSwitcher({
             role="radio"
             type="button"
           >
+            <Icon name={STATUS_ICONS[status]} size={15} />
             {PLACE_STATUS_LABELS[status]}
           </button>
         )

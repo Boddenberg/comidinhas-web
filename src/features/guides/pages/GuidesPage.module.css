@@ -1,0 +1,205 @@
+.page {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.headerAction {
+  align-items: center;
+  background: var(--color-primary);
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-weight: 800;
+  gap: 0.45rem;
+  padding: 0.78rem 1rem;
+}
+
+.error {
+  background: rgba(216, 75, 75, 0.12);
+  border: 1px solid rgba(216, 75, 75, 0.25);
+  border-radius: var(--radius-md);
+  color: #9f2d2d;
+  padding: 0.85rem 1rem;
+}
+
+.layout {
+  align-items: start;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.4fr);
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.form h2,
+.panelHeader h2 {
+  font-size: 1.25rem;
+}
+
+.form p,
+.muted,
+.empty p,
+.placePicker p {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.placePicker {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.pickerLabel {
+  color: var(--color-text);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.placeOptions {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 17rem;
+  overflow: auto;
+  padding-right: 0.2rem;
+}
+
+.placeOption {
+  align-items: center;
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.65rem 0.7rem;
+}
+
+.placeOption span {
+  font-size: 0.9rem;
+  font-weight: 650;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guidesPanel {
+  display: grid;
+  gap: 1rem;
+}
+
+.panelHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.panelHeader span {
+  background: var(--color-primary-soft);
+  border-radius: 999px;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.45rem 0.7rem;
+}
+
+.empty {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.25rem;
+}
+
+.guidesGrid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.guideCard {
+  align-items: start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--color-shadow-sm);
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  padding: 1rem;
+}
+
+.guideInitial {
+  align-items: center;
+  background: linear-gradient(135deg, rgba(91, 141, 239, 0.14), rgba(196, 69, 105, 0.12));
+  border-radius: var(--radius-md);
+  color: var(--color-primary-strong);
+  display: inline-flex;
+  font-weight: 900;
+  height: 3rem;
+  justify-content: center;
+  width: 3rem;
+}
+
+.guideBody {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.guideBody header {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.guideBody strong {
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.guideBody header span {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.guideBody p {
+  color: var(--color-text);
+  line-height: 1.55;
+}
+
+.guideBody small {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.deleteButton {
+  align-items: center;
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.deleteButton:hover {
+  background: rgba(216, 75, 75, 0.1);
+  color: #9f2d2d;
+}
+
+@media (max-width: 920px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

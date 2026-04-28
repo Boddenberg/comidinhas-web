@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
+import { listGuias, type Guia } from '@/features/guides/services/guidesService'
 import { useAddPlace } from '@/features/places/AddPlaceContext'
 import { PlaceCard } from '@/features/places/components/PlaceCard'
 import { QuickAddBar } from '@/features/places/components/QuickAddBar'
-import { listPlaces } from '@/features/places/services/placesService'
 import {
   PLACE_STATUS_LABELS,
   type Place,
@@ -12,42 +12,65 @@ import {
 } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
-import { decideWhereToEat } from '../services/decideService'
+import {
+  decideRestaurant,
+  getDecidedLugarName,
+  type DecideRestaurantRequest,
+  type DecideRestaurantResponse,
+  type DecideScope,
+} from '../services/decideService'
+import { fetchHome, type HomeDashboard } from '../services/homeService'
 import styles from './HomePage.module.css'
 
 type DecideState =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'success'; reply: string; model: string; provider: string }
+  | { status: 'success'; decision: DecideRestaurantResponse }
 
 const DECIDE_CONTEXT = {
-  budget: 'R$ $$',
-  weather: 'Ensolarado',
-  dayOfWeek: 'Sábado',
-  location: 'Próximo de nós',
-  mood: 'Algo diferente',
+  budget: 'ate uns R$ 120 por pessoa',
+  budgetLevel: 3 as const,
+  weather: 'ensolarado',
+  dayOfWeek: 'sexta-feira',
+  location: 'perto de nos',
+  mood: 'algo diferente, mas sem ser pesado',
 }
 
 const aiCriteria = [
-  { icon: 'wallet', label: 'Orçamento', value: DECIDE_CONTEXT.budget },
+  { icon: 'wallet', label: 'Orcamento', value: DECIDE_CONTEXT.budget },
   { icon: 'cloud-sun', label: 'Clima', value: DECIDE_CONTEXT.weather },
-  { icon: 'calendar', label: 'Dia da semana', value: DECIDE_CONTEXT.dayOfWeek },
-  { icon: 'pin', label: 'Localização', value: DECIDE_CONTEXT.location },
-  { icon: 'heart', label: 'Vontade', value: DECIDE_CONTEXT.mood },
+  { icon: 'calendar', label: 'Dia', value: DECIDE_CONTEXT.dayOfWeek },
+  { icon: 'pin', label: 'Regiao', value: DECIDE_CONTEXT.location },
+  { icon: 'heart', label: 'Mood', value: DECIDE_CONTEXT.mood },
 ] as const
 
-const guides: Array<{
+const AI_SCOPE_OPTIONS: Array<{ id: DecideScope; label: string; hint: string }> = [
+  { id: 'todos', label: 'Qualquer', hint: 'todos os lugares' },
+  { id: 'favoritos', label: 'Favoritos', hint: 'favoritos do contexto' },
+  { id: 'quero_ir', label: 'Novos', hint: 'status quero ir' },
+  { id: 'guia', label: 'Guia', hint: 'dentro de um guia' },
+]
+
+const fallbackGuides: Array<{
   emoji: string
   meta: string
   title: string
   tone: 'burger' | 'pizza' | 'sushi' | 'trophy'
 }> = [
-  { emoji: '🍔', meta: '12 lugares', title: 'Guia do Hambúrguer', tone: 'burger' },
-  { emoji: '🍕', meta: '18 lugares', title: 'Guia da Pizza', tone: 'pizza' },
-  { emoji: '🍣', meta: '15 lugares', title: 'Guia do Sushi', tone: 'sushi' },
-  { emoji: '🏆', meta: 'Novo desafio', title: 'Desafio Comer, marcou!', tone: 'trophy' },
+  { emoji: 'H', meta: 'sem lugares', title: 'Guia do Hamburguer', tone: 'burger' },
+  { emoji: 'P', meta: 'sem lugares', title: 'Guia da Pizza', tone: 'pizza' },
+  { emoji: 'S', meta: 'sem lugares', title: 'Guia do Sushi', tone: 'sushi' },
+  { emoji: 'D', meta: 'novo guia', title: 'Desafio Comer, marcou', tone: 'trophy' },
 ]
+
+function getGuideCount(guia: Guia) {
+  return guia.total_lugares ?? guia.lugares.length ?? guia.lugar_ids.length ?? 0
+}
+
+function getGuideInitial(nome: string) {
+  return nome.trim().slice(0, 1).toUpperCase() || '#'
+}
 
 function formatRelativeTime(iso: string) {
   if (!iso) return ''
@@ -56,11 +79,64 @@ function formatRelativeTime(iso: string) {
   const diffMs = Date.now() - date.getTime()
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
   if (days <= 0) return 'hoje'
-  if (days === 1) return 'há 1 dia'
-  if (days < 30) return `há ${days} dias`
+  if (days === 1) return 'ha 1 dia'
+  if (days < 30) return `ha ${days} dias`
   const months = Math.floor(days / 30)
-  if (months === 1) return 'há 1 mês'
-  return `há ${months} meses`
+  if (months === 1) return 'ha 1 mes'
+  return `ha ${months} meses`
+}
+
+function uniquePlaces(...lists: Place[][]) {
+  const seen = new Set<string>()
+  const out: Place[] = []
+
+  lists.flat().forEach((place) => {
+    if (seen.has(place.id)) return
+    seen.add(place.id)
+    out.push(place)
+  })
+
+  return out
+}
+
+function replacePlaceInHome(home: HomeDashboard, updated: Place): HomeDashboard {
+  const replace = (items: Place[]) =>
+    items.map((place) => (place.id === updated.id ? updated : place))
+
+  return {
+    ...home,
+    latest_places: replace(home.latest_places),
+    top_favorites: replace(home.top_favorites),
+    want_to_go: replace(home.want_to_go),
+    want_to_return: replace(home.want_to_return),
+  }
+}
+
+function prependPlaceToHome(home: HomeDashboard, place: Place): HomeDashboard {
+  return {
+    ...home,
+    counters: {
+      ...home.counters,
+      total_favorites: home.counters.total_favorites + (place.is_favorite ? 1 : 0),
+      total_places: home.counters.total_places + 1,
+      total_visited: home.counters.total_visited + (place.status === 'fomos' ? 1 : 0),
+      total_want_to_go: home.counters.total_want_to_go + (place.status === 'quero_ir' ? 1 : 0),
+      total_want_to_return:
+        home.counters.total_want_to_return + (place.status === 'quero_voltar' ? 1 : 0),
+    },
+    latest_places: uniquePlaces([place], home.latest_places).slice(0, 5),
+    top_favorites: place.is_favorite
+      ? uniquePlaces([place], home.top_favorites).slice(0, 5)
+      : home.top_favorites,
+    want_to_go:
+      place.status === 'quero_ir'
+        ? uniquePlaces([place], home.want_to_go).slice(0, 5)
+        : home.want_to_go,
+    want_to_return:
+      place.status === 'quero_voltar'
+        ? uniquePlaces([place], home.want_to_return).slice(0, 5)
+        : home.want_to_return,
+  }
 }
 
 export function HomePage() {
@@ -68,30 +144,36 @@ export function HomePage() {
   const { open: openAddPlace, registerOnCreated } = useAddPlace()
 
   const [decideState, setDecideState] = useState<DecideState>({ status: 'idle' })
-  const [places, setPlaces] = useState<Place[] | null>(null)
-  const [placesError, setPlacesError] = useState<string | null>(null)
-  const [placesLoading, setPlacesLoading] = useState(true)
+  const [decideScope, setDecideScope] = useState<DecideScope>('todos')
+  const [selectedGuiaId, setSelectedGuiaId] = useState('')
+  const [home, setHome] = useState<HomeDashboard | null>(null)
+  const [homeError, setHomeError] = useState<string | null>(null)
+  const [homeLoading, setHomeLoading] = useState(true)
+  const [guias, setGuias] = useState<Guia[] | null>(null)
+  const [guidesError, setGuidesError] = useState<string | null>(null)
+  const [guidesLoading, setGuidesLoading] = useState(false)
 
   useEffect(() => {
     if (!grupo) {
-      setPlacesLoading(false)
+      setHomeLoading(false)
       return
     }
+
     let cancelled = false
-    setPlacesLoading(true)
-    listPlaces(grupo.id, { page_size: 20, sort_by: 'updated_at', sort_order: 'desc' })
+    setHomeLoading(true)
+    fetchHome(grupo.id, 5)
       .then((result) => {
         if (cancelled) return
-        setPlaces(result.items)
-        setPlacesError(null)
+        setHome(result)
+        setHomeError(null)
       })
       .catch((err: unknown) => {
         if (cancelled) return
-        setPlacesError(getErrorMessage(err, 'Não foi possível carregar seus lugares.'))
+        setHomeError(getErrorMessage(err, 'Nao foi possivel carregar a home.'))
       })
       .finally(() => {
         if (cancelled) return
-        setPlacesLoading(false)
+        setHomeLoading(false)
       })
 
     return () => {
@@ -100,58 +182,146 @@ export function HomePage() {
   }, [grupo])
 
   useEffect(() => {
+    if (!grupo) {
+      setGuidesLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setGuidesLoading(true)
+    listGuias(grupo.id)
+      .then((result) => {
+        if (cancelled) return
+        setGuias(result)
+        setGuidesError(null)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setGuidesError(getErrorMessage(err, 'Nao foi possivel carregar seus guias.'))
+      })
+      .finally(() => {
+        if (cancelled) return
+        setGuidesLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [grupo])
+
+  useEffect(() => {
+    if (!guias?.length) {
+      setSelectedGuiaId('')
+      return
+    }
+
+    if (!selectedGuiaId || !guias.some((guia) => guia.id === selectedGuiaId)) {
+      setSelectedGuiaId(guias[0].id)
+    }
+  }, [guias, selectedGuiaId])
+
+  useEffect(() => {
     registerOnCreated((newPlace) => {
-      setPlaces((current) => (current ? [newPlace, ...current] : [newPlace]))
+      setHome((current) => (current ? prependPlaceToHome(current, newPlace) : current))
     })
     return () => registerOnCreated(null)
   }, [registerOnCreated])
 
   function handlePlaceUpdated(updated: Place) {
-    setPlaces((current) => current?.map((p) => (p.id === updated.id ? updated : p)) ?? null)
+    setHome((current) => (current ? replacePlaceInHome(current, updated) : current))
   }
 
-  async function handleDecide() {
+  async function handleDecide(evitarLugarIds: string[] = []) {
     setDecideState({ status: 'loading' })
 
     try {
-      const response = await decideWhereToEat(DECIDE_CONTEXT)
+      if (!grupo) {
+        throw new Error('Selecione um contexto antes de pedir uma escolha da IA.')
+      }
+      if (decideScope === 'guia' && !selectedGuiaId) {
+        throw new Error('Escolha um guia antes de pedir uma decisao dentro dele.')
+      }
+
+      const payload: DecideRestaurantRequest = {
+        grupo_id: grupo.id,
+        escopo: decideScope,
+        guia_id: decideScope === 'guia' ? selectedGuiaId : undefined,
+        criterios: {
+          clima: DECIDE_CONTEXT.weather,
+          dia_semana: DECIDE_CONTEXT.dayOfWeek,
+          mood: DECIDE_CONTEXT.mood,
+          observacoes: `Localizacao: ${DECIDE_CONTEXT.location}.`,
+          orcamento_max: DECIDE_CONTEXT.budgetLevel,
+          orcamento_texto: DECIDE_CONTEXT.budget,
+          quantidade_pessoas: grupo.tipo === 'casal' ? 2 : undefined,
+          priorizar_novidade: decideScope === 'quero_ir',
+          surpreender: true,
+        },
+        evitar_lugar_ids: evitarLugarIds.length > 0 ? evitarLugarIds : undefined,
+        max_candidatos: 80,
+      }
+
+      const response = await decideRestaurant(payload)
       setDecideState({
         status: 'success',
-        reply: response.reply,
-        model: response.model,
-        provider: response.provider,
+        decision: response,
       })
     } catch (error: unknown) {
       setDecideState({
         status: 'error',
-        message: getErrorMessage(error, 'Não foi possível consultar a IA agora.'),
+        message: getErrorMessage(error, 'Nao foi possivel consultar a IA agora.'),
       })
     }
   }
 
   const isLoading = decideState.status === 'loading'
+  const chosenPlaceId =
+    decideState.status === 'success' ? decideState.decision.escolha.lugar.id : null
+
+  const places = useMemo(() => {
+    if (!home) return []
+    return uniquePlaces(home.latest_places, home.top_favorites, home.want_to_go).slice(0, 4)
+  }, [home])
 
   const recentActivity = useMemo(() => {
-    if (!places || places.length === 0) return []
-    return places
-      .slice()
-      .sort((a, b) => {
-        const tA = new Date(a.updated_at ?? a.created_at ?? 0).getTime()
-        const tB = new Date(b.updated_at ?? b.created_at ?? 0).getTime()
-        return tB - tA
+    if (!home) return []
+    return home.latest_places.slice(0, 3).map((place) => ({
+      id: place.id,
+      image: place.image_url,
+      name: place.name,
+      status: place.status,
+      when: formatRelativeTime(place.updated_at ?? place.created_at ?? ''),
+    }))
+  }, [home])
+
+  const guideCards = useMemo(() => {
+    if (guias) {
+      return guias.slice(0, 4).map((guia, index) => {
+        const total = getGuideCount(guia)
+        return {
+          emoji: getGuideInitial(guia.nome),
+          meta: `${total} ${total === 1 ? 'lugar' : 'lugares'}`,
+          title: guia.nome,
+          tone: fallbackGuides[index % fallbackGuides.length].tone,
+        }
       })
-      .slice(0, 3)
-      .map((place) => ({
-        id: place.id,
-        name: place.name,
-        status: place.status,
-        when: formatRelativeTime(place.updated_at ?? place.created_at ?? ''),
-        image: place.image_url,
-      }))
-  }, [places])
+    }
+
+    return fallbackGuides
+  }, [guias])
 
   const greeting = perfil?.nome?.split(' ')[0]?.toLowerCase() ?? 'gente'
-  const totalPlaces = places?.length ?? 0
+  const totalPlaces = home?.counters.total_places ?? places.length
+  const selectedScopeLabel =
+    AI_SCOPE_OPTIONS.find((option) => option.id === decideScope)?.label ?? 'Qualquer'
+  const selectedGuia = guias?.find((guia) => guia.id === selectedGuiaId)
+
+  const stats = [
+    { label: 'Lugares', value: totalPlaces },
+    { label: 'Visitados', value: home?.counters.total_visited ?? 0 },
+    { label: 'Favoritos', value: home?.counters.total_favorites ?? 0 },
+    { label: 'Quero ir', value: home?.counters.total_want_to_go ?? 0 },
+  ]
 
   return (
     <div className={styles.layout}>
@@ -169,25 +339,34 @@ export function HomePage() {
               <br />
               onde <span className={styles.heroAccent}>comer</span> hoje?
               <span className={styles.heroHeart} aria-hidden="true">
-                ♥
+                +
               </span>
             </h1>
             <p className={styles.heroDescription}>
-              Oi, {greeting}! Deixa com a IA — ela escolhe o lugar perfeito pra gente hoje.
+              Oi, {greeting}! A IA decide com base no contexto {grupo?.nome ?? 'selecionado'}.
             </p>
             <button
               className={styles.heroButton}
               disabled={isLoading}
-              onClick={handleDecide}
+              onClick={() => handleDecide()}
               type="button"
             >
               <Icon name="sparkles" size={16} />
-              {isLoading ? 'Pensando...' : 'Deixar a IA decidir'}
+              {isLoading ? 'A IA esta escolhendo...' : `IA decide: ${selectedScopeLabel}`}
             </button>
           </div>
         </section>
 
         <QuickAddBar />
+
+        <section className={styles.statsGrid} aria-label="Resumo do contexto">
+          {stats.map((stat) => (
+            <article className={styles.statCard} key={stat.label}>
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </article>
+          ))}
+        </section>
 
         {decideState.status === 'loading' ? (
           <section className={styles.aiResultCard}>
@@ -195,7 +374,7 @@ export function HomePage() {
               <span className={styles.aiResultBadge}>
                 <Icon name="sparkles" size={14} /> IA Decide
               </span>
-              <strong>Pensando na melhor pedida pra vocês...</strong>
+              <strong>A IA esta escolhendo...</strong>
             </header>
             <div className={styles.aiSkeleton} aria-hidden="true">
               <span />
@@ -211,15 +390,38 @@ export function HomePage() {
               <span className={styles.aiResultBadge}>
                 <Icon name="sparkles" size={14} /> IA Decide
               </span>
-              <strong>A escolha de hoje:</strong>
+              <strong>
+                A escolha de hoje: {getDecidedLugarName(decideState.decision.escolha.lugar)}
+              </strong>
             </header>
-            <p className={styles.aiResultReply}>{decideState.reply}</p>
+            <p className={styles.aiResultReply}>{decideState.decision.escolha.motivo}</p>
+            {decideState.decision.escolha.pontos_fortes?.length ? (
+              <ul className={styles.aiResultList}>
+                {decideState.decision.escolha.pontos_fortes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+            {decideState.decision.alternativas?.length ? (
+              <p className={styles.aiResultMeta}>
+                Alternativas:{' '}
+                {decideState.decision.alternativas
+                  .slice(0, 2)
+                  .map((item) => getDecidedLugarName(item.lugar))
+                  .join(', ')}
+              </p>
+            ) : null}
             <footer className={styles.aiResultFooter}>
               <span className={styles.aiResultMeta}>
-                {decideState.provider} · {decideState.model}
+                {decideState.decision.total_candidatos} candidatos -{' '}
+                {decideState.decision.provider} - {decideState.decision.modelo}
               </span>
-              <button className={styles.aiResultRetry} onClick={handleDecide} type="button">
-                Pedir outra sugestão
+              <button
+                className={styles.aiResultRetry}
+                onClick={() => handleDecide(chosenPlaceId ? [chosenPlaceId] : [])}
+                type="button"
+              >
+                Decidir de novo
               </button>
             </footer>
           </section>
@@ -228,11 +430,11 @@ export function HomePage() {
         {decideState.status === 'error' ? (
           <section className={`${styles.aiResultCard} ${styles.aiResultError}`}>
             <header className={styles.aiResultHeader}>
-              <strong>A IA não respondeu agora.</strong>
+              <strong>A IA nao respondeu agora.</strong>
             </header>
             <p className={styles.aiResultReply}>{decideState.message}</p>
             <footer className={styles.aiResultFooter}>
-              <button className={styles.aiResultRetry} onClick={handleDecide} type="button">
+              <button className={styles.aiResultRetry} onClick={() => handleDecide()} type="button">
                 Tentar novamente
               </button>
             </footer>
@@ -243,20 +445,20 @@ export function HomePage() {
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
               <h2>Nossos lugares</h2>
-              {places ? (
+              {home ? (
                 <span className={styles.sectionBadge}>
                   {totalPlaces} {totalPlaces === 1 ? 'lugar' : 'lugares'}
                 </span>
               ) : null}
             </div>
-            <Link className={styles.sectionLink} to="/favoritos">
+            <Link className={styles.sectionLink} to="/lugares">
               Ver todos
             </Link>
           </header>
 
-          {placesError ? (
-            <p className={styles.emptyState}>{placesError}</p>
-          ) : placesLoading ? (
+          {homeError ? (
+            <p className={styles.emptyState}>{homeError}</p>
+          ) : homeLoading ? (
             <div className={styles.placeGrid}>
               {Array.from({ length: 4 }).map((_, idx) => (
                 <article key={idx} className={styles.skeletonCard} aria-hidden="true">
@@ -266,10 +468,12 @@ export function HomePage() {
                 </article>
               ))}
             </div>
+          ) : places.length === 0 ? (
+            <p className={styles.emptyState}>Nenhum lugar criado neste contexto ainda.</p>
           ) : (
             <div className={styles.placeCarouselWrap}>
               <div className={styles.placeGrid}>
-                {(places ?? []).slice(0, 4).map((place) => (
+                {places.map((place) => (
                   <PlaceCard key={place.id} onUpdated={handlePlaceUpdated} place={place} />
                 ))}
                 <button
@@ -277,16 +481,12 @@ export function HomePage() {
                   onClick={() => openAddPlace()}
                   type="button"
                 >
-                  <img alt="Adicionar lugar / Salvar do Google Maps" src="/btn-google-maps.png" />
+                  <img alt="Adicionar lugar pelo Google Maps" src="/btn-google-maps.png" />
                 </button>
               </div>
 
-              {(places?.length ?? 0) > 4 ? (
-                <Link
-                  aria-label="Ver mais lugares"
-                  className={styles.scrollButton}
-                  to="/favoritos"
-                >
+              {totalPlaces > 4 ? (
+                <Link aria-label="Ver mais lugares" className={styles.scrollButton} to="/lugares">
                   <Icon name="chevron-right" size={18} />
                 </Link>
               ) : null}
@@ -297,26 +497,34 @@ export function HomePage() {
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
-              <h2>Guias em alta</h2>
+              <h2>Guias</h2>
             </div>
-            <a className={styles.sectionLink} href="#guias">
+            <Link className={styles.sectionLink} to="/guias">
               Ver todos
-            </a>
+            </Link>
           </header>
 
-          <div className={styles.guidesGrid}>
-            {guides.map((guide) => (
-              <article key={guide.title} className={styles.guideCard} data-tone={guide.tone}>
-                <span className={styles.guideEmoji} aria-hidden="true">
-                  {guide.emoji}
-                </span>
-                <div className={styles.guideText}>
-                  <strong className={styles.guideTitle}>{guide.title}</strong>
-                  <span className={styles.guideMeta}>{guide.meta}</span>
-                </div>
-              </article>
-            ))}
-          </div>
+          {guidesError ? (
+            <p className={styles.emptyState}>{guidesError}</p>
+          ) : guidesLoading ? (
+            <p className={styles.muted}>Carregando guias...</p>
+          ) : guideCards.length === 0 ? (
+            <p className={styles.emptyState}>Nenhum guia criado neste contexto ainda.</p>
+          ) : (
+            <div className={styles.guidesGrid}>
+              {guideCards.map((guide) => (
+                <article key={guide.title} className={styles.guideCard} data-tone={guide.tone}>
+                  <span className={styles.guideEmoji} aria-hidden="true">
+                    {guide.emoji}
+                  </span>
+                  <div className={styles.guideText}>
+                    <strong className={styles.guideTitle}>{guide.title}</strong>
+                    <span className={styles.guideMeta}>{guide.meta}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
@@ -331,11 +539,44 @@ export function HomePage() {
             <span className={styles.aiAvatar} aria-hidden="true">
               <Icon name="robot" size={20} />
             </span>
-            <p>
-              Eu analiso tudo pra escolher o melhor lugar pra gente hoje!{' '}
-              <span className={styles.heartTiny}>♥</span>
-            </p>
+            <p>Escolho usando o contexto ativo, seus filtros e os restaurantes salvos.</p>
           </div>
+
+          <div className={styles.scopePicker} role="radiogroup" aria-label="Escopo da IA">
+            {AI_SCOPE_OPTIONS.map((option) => (
+              <button
+                aria-checked={decideScope === option.id}
+                className={styles.scopeButton}
+                data-active={decideScope === option.id}
+                key={option.id}
+                onClick={() => setDecideScope(option.id)}
+                role="radio"
+                type="button"
+              >
+                <strong>{option.label}</strong>
+                <span>{option.hint}</span>
+              </button>
+            ))}
+          </div>
+
+          {decideScope === 'guia' ? (
+            <label className={styles.guideSelect}>
+              <span>Guia</span>
+              <select
+                className="selectInput"
+                disabled={!guias?.length}
+                onChange={(event) => setSelectedGuiaId(event.target.value)}
+                value={selectedGuiaId}
+              >
+                {(guias ?? []).map((guia) => (
+                  <option key={guia.id} value={guia.id}>
+                    {guia.nome}
+                  </option>
+                ))}
+              </select>
+              {!selectedGuia ? <small>Crie um guia para usar este escopo.</small> : null}
+            </label>
+          ) : null}
 
           <ul className={styles.aiCriteria}>
             {aiCriteria.map((item) => (
@@ -344,23 +585,7 @@ export function HomePage() {
                   <Icon name={item.icon} size={15} />
                   {item.label}
                 </span>
-                <span className={styles.aiCriteriaValue}>
-                  {item.label === 'Clima' ? (
-                    <>
-                      <Icon name="sun" size={13} className={styles.aiSunIcon} /> {item.value}
-                    </>
-                  ) : item.label === 'Localização' ? (
-                    <>
-                      <Icon name="pin" size={13} /> {item.value}
-                    </>
-                  ) : item.label === 'Vontade' ? (
-                    <>
-                      <Icon name="heart" size={13} /> {item.value}
-                    </>
-                  ) : (
-                    item.value
-                  )}
-                </span>
+                <span className={styles.aiCriteriaValue}>{item.value}</span>
               </li>
             ))}
           </ul>
@@ -368,10 +593,10 @@ export function HomePage() {
           <button
             className={styles.aiButton}
             disabled={isLoading}
-            onClick={handleDecide}
+            onClick={() => handleDecide()}
             type="button"
           >
-            {isLoading ? 'Pensando...' : 'Deixar a IA decidir'}{' '}
+            {isLoading ? 'A IA esta escolhendo...' : 'Deixar a IA decidir'}{' '}
             <Icon name="sparkles" size={14} />
           </button>
         </section>
@@ -379,8 +604,8 @@ export function HomePage() {
         <section className={styles.railCard}>
           <header className={styles.railHeader}>
             <h2>Atividade recente</h2>
-            <Link className={styles.sectionLink} to="/favoritos">
-              Ver todo
+            <Link className={styles.sectionLink} to="/lugares">
+              Ver tudo
             </Link>
           </header>
 
@@ -397,7 +622,7 @@ export function HomePage() {
                   </span>
                   <div className={styles.activityBody}>
                     <span className={styles.activityText}>
-                      {PLACE_STATUS_LABELS[item.status as PlaceStatus]} · {item.name}
+                      {PLACE_STATUS_LABELS[item.status as PlaceStatus]} - {item.name}
                     </span>
                     <span className={styles.activityDetail}>{item.when}</span>
                   </div>
@@ -409,30 +634,28 @@ export function HomePage() {
 
         <section className={styles.railCard}>
           <header className={styles.railHeader}>
-            <h2>Nosso grupo</h2>
-            <button
-              aria-label="Convidar pessoa"
-              className={styles.groupAddButton}
-              onClick={() => (window.location.href = '/perfil')}
-              type="button"
-            >
-              <Icon name="plus" size={14} />
-            </button>
+            <h2>Contexto ativo</h2>
+            <Link aria-label="Editar perfil" className={styles.groupAddButton} to="/perfil">
+              <Icon name="pencil" size={14} />
+            </Link>
           </header>
 
           <div className={styles.groupMembers}>
-            <span className={styles.groupAvatarPhoto} aria-label={perfil?.nome ?? 'Membro'}>
-              <img alt="" src="/casal-fv.png" />
-            </span>
-            <button
-              aria-label="Convidar amigo"
-              className={styles.groupInvite}
-              onClick={() => (window.location.href = '/perfil')}
-              type="button"
-            >
-              <Icon name="plus" size={16} />
-            </button>
+            {(grupo?.membros?.length
+              ? grupo.membros
+              : [{ email: null, nome: perfil?.nome ?? 'Perfil', perfil_id: 'perfil-ativo' }])
+              .slice(0, 4)
+              .map((membro) => (
+                <span
+                  className={`${styles.groupAvatarPhoto} ${styles.groupAvatarInitial}`}
+                  key={membro.perfil_id ?? membro.nome}
+                  title={membro.nome}
+                >
+                  {getGuideInitial(membro.nome)}
+                </span>
+              ))}
           </div>
+          <p className={styles.muted}>{grupo?.nome ?? 'Perfil individual'}</p>
         </section>
       </aside>
     </div>

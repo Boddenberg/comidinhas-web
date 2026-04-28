@@ -8,17 +8,21 @@ import styles from './AddPlace.module.css'
 type AddPlaceModalProps = {
   onClose: () => void
   onCreated: (place: Place) => void
+  initialPlaceId?: string
   initialQuery?: string
   initialMode?: 'google' | 'manual'
 }
 
 export function AddPlaceModal({
   initialMode = 'google',
+  initialPlaceId,
   initialQuery = '',
   onClose,
   onCreated,
 }: AddPlaceModalProps) {
   const [mode, setMode] = useState<'google' | 'manual'>(initialMode)
+  const [hasSelectedGooglePlace, setHasSelectedGooglePlace] = useState(Boolean(initialPlaceId))
+  const isConfirmingGooglePlace = mode === 'google' && hasSelectedGooglePlace
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -31,6 +35,11 @@ export function AddPlaceModal({
       document.body.style.overflow = ''
     }
   }, [onClose])
+
+  function handleModeChange(nextMode: 'google' | 'manual') {
+    setHasSelectedGooglePlace(false)
+    setMode(nextMode)
+  }
 
   return (
     <div className={styles.backdrop} onClick={onClose} role="presentation">
@@ -48,12 +57,18 @@ export function AddPlaceModal({
             </span>
             <div>
               <h2 id="add-place-title" className={styles.modalTitle}>
-                {mode === 'google' ? 'É esse lugar?' : 'Adicionar lugar'}
+                {isConfirmingGooglePlace
+                  ? 'É esse lugar?'
+                  : mode === 'google'
+                    ? 'Encontrar restaurante'
+                    : 'Adicionar lugar'}
               </h2>
               <p className={styles.modalSubtitle}>
-                {mode === 'google'
-                  ? 'Confira os detalhes antes de adicionar ao casal'
-                  : 'Cadastre manualmente quando o Google Maps não encontrar.'}
+                {isConfirmingGooglePlace
+                  ? 'Confira os detalhes antes de adicionar ao casal.'
+                  : mode === 'google'
+                    ? 'Busque no Google Maps e confirme antes de salvar.'
+                    : 'Cadastre manualmente quando o Google Maps não encontrar.'}
               </p>
             </div>
           </div>
@@ -67,30 +82,37 @@ export function AddPlaceModal({
           </button>
         </header>
 
-        <div className={styles.modeRow} role="tablist">
-          <button
-            aria-selected={mode === 'google'}
-            className={`${styles.modeTab} ${mode === 'google' ? styles.modeActive : ''}`}
-            onClick={() => setMode('google')}
-            role="tab"
-            type="button"
-          >
-            <Icon name="search" size={15} /> Google Maps
-          </button>
-          <button
-            aria-selected={mode === 'manual'}
-            className={`${styles.modeTab} ${mode === 'manual' ? styles.modeActive : ''}`}
-            onClick={() => setMode('manual')}
-            role="tab"
-            type="button"
-          >
-            <Icon name="bookmark" size={15} /> Manual
-          </button>
-        </div>
+        {!isConfirmingGooglePlace ? (
+          <div className={styles.modeRow} role="tablist">
+            <button
+              aria-selected={mode === 'google'}
+              className={`${styles.modeTab} ${mode === 'google' ? styles.modeActive : ''}`}
+              onClick={() => handleModeChange('google')}
+              role="tab"
+              type="button"
+            >
+              <Icon name="search" size={15} /> Google Maps
+            </button>
+            <button
+              aria-selected={mode === 'manual'}
+              className={`${styles.modeTab} ${mode === 'manual' ? styles.modeActive : ''}`}
+              onClick={() => handleModeChange('manual')}
+              role="tab"
+              type="button"
+            >
+              <Icon name="bookmark" size={15} /> Manual
+            </button>
+          </div>
+        ) : null}
 
         <div className={styles.modalBody}>
           {mode === 'google' ? (
-            <GoogleSearchPanel initialQuery={initialQuery} onSaved={onCreated} />
+            <GoogleSearchPanel
+              initialPlaceId={initialPlaceId}
+              initialQuery={initialQuery}
+              onSaved={onCreated}
+              onSelectionChange={setHasSelectedGooglePlace}
+            />
           ) : (
             <ManualPlaceForm onSaved={onCreated} />
           )}

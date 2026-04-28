@@ -1,37 +1,103 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
+import { useAuth } from '@/features/auth/AuthContext'
+import { saveGooglePlace } from '@/features/places/services/googleMapsService'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { FeedbackState } from '@/shared/ui/FeedbackState/FeedbackState'
 import { PageHeader } from '@/shared/ui/PageHeader/PageHeader'
 import { ChatComposer } from '../components/ChatComposer'
 import { ChatMessageList } from '../components/ChatMessageList'
 import { sendChatMessage } from '../services/chatService'
-import type { ChatConversationMessage, ChatHistoryMessage } from '../types'
+import type {
+  ChatConversationMessage,
+  ChatHistoryMessage,
+  RecommendationLocation,
+  RecommendedRestaurant,
+} from '../types'
 import styles from './ChatPage.module.css'
 
 const quickPrompts = [
-  'Quero uma sugestao de jantar leve para hoje',
-  'Quero algo doce para o fim da tarde',
-  'Me sugira uma refeicao rapida e barata',
-  'Surpreenda-me com uma ideia diferente',
+  'Estou com vontade de comer arabe hoje',
+  'Quero um jantar leve e perto de Pinheiros',
+  'Algo barato para duas pessoas',
+  'Surpreenda com uma novidade',
 ]
 
 const helpItems = [
-  'Historico enviado automaticamente a cada nova pergunta.',
-  'System prompt opcional para testar diferentes tons de resposta.',
-  'Camadas separadas entre UI, servico HTTP e tipos TypeScript.',
+  'A IA cruza seus lugares salvos com opcoes externas.',
+  'Se faltar contexto, ela pergunta antes de recomendar.',
+  'Opcoes do Google podem ser salvas direto no Comidinhas.',
 ]
 
 function createMessageId() {
   return crypto.randomUUID()
 }
 
+async function getBrowserLocation(): Promise<{ latitude: number; longitude: number } | null> {
+  if (!navigator.geolocation) return null
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }),
+      () => resolve(null),
+      { enableHighAccuracy: true, maximumAge: 300000, timeout: 8000 },
+    )
+  })
+}
+
+function recommendationToInternalRestaurant(
+  restaurante: RecommendedRestaurant,
+  saved: Awaited<ReturnType<typeof saveGooglePlace>>,
+): RecommendedRestaurant {
+  return {
+    ...restaurante,
+    bairro: saved.neighborhood,
+    candidato_id: `comidinhas:${saved.id}`,
+    categoria: saved.category,
+    cidade: saved.city,
+    favorito: saved.is_favorite,
+    faixa_preco: saved.price_range,
+    imagem_capa: saved.image_url,
+    ja_fomos: saved.status === 'fomos' || saved.status === 'quero_voltar',
+    link: saved.link,
+    lugar_id: saved.id,
+    novo_no_app: false,
+    nome: saved.name,
+    origem: 'comidinhas',
+    rating: saved.rating ?? restaurante.rating,
+    status: saved.status,
+    user_rating_count: saved.user_rating_count ?? restaurante.user_rating_count,
+  }
+}
+
 export function ChatPage() {
+  const { grupo, perfil } = useAuth()
   const [draft, setDraft] = useState('')
-  const [systemPrompt, setSystemPrompt] = useState('')
   const [messages, setMessages] = useState<ChatConversationMessage[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [savingRecommendationId, setSavingRecommendationId] = useState<string | null>(null)
+
+  async function buildLocation(): Promise<RecommendationLocation | undefined> {
+    const location = await getBrowserLocation()
+    if (location) {
+      return {
+        ...location,
+        cidade: perfil?.cidade ?? undefined,
+        raio_metros: 8000,
+      }
+    }
+
+    if (perfil?.cidade) {
+      return { cidade: perfil.cidade, raio_metros: 8000 }
+    }
+
+    return undefined
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -55,11 +121,22 @@ export function ChatPage() {
     setDraft('')
 
     try {
-      const response = await sendChatMessage({
-        history: history.length > 0 ? history : undefined,
-        message: trimmedMessage,
-        system_prompt: systemPrompt.trim().length > 0 ? systemPrompt.trim() : undefined,
-      })
+      if (!grupo) {
+        throw new Error('Selecione um contexto antes de conversar com a IA.')
+      }
+
+      const response = await sendChatMessage(
+        grupo.id,
+        {
+          history: history.length > 0 ? history : undefined,
+          message: trimmedMessage,
+        },
+        {
+          localizacao: await buildLocation(),
+          perfilId: perfil?.id,
+          permitirGoogle: true,
+        },
+      )
 
       setMessages((currentMessages) => [
         ...currentMessages,
@@ -70,13 +147,48 @@ export function ChatPage() {
             model: response.model,
             provider: response.provider,
           },
+          recommendations: response.recommendations,
           role: 'assistant',
         },
       ])
     } catch (error: unknown) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel obter resposta do chat agora.'))
+      setErrorMessage(getErrorMessage(error, 'Nao foi possivel obter recomendacoes agora.'))
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleSaveGoogleRecommendation(restaurante: RecommendedRestaurant) {
+    if (!grupo || !restaurante.google_place_id) return
+
+    setErrorMessage(null)
+    setSavingRecommendationId(restaurante.candidato_id)
+    try {
+      const saved = await saveGooglePlace(grupo.id, {
+        added_by_profile_id: perfil?.id,
+        is_favorite: false,
+        notes: 'Salvo a partir da recomendacao da IA',
+        place_id: restaurante.google_place_id,
+        status: 'quero_ir',
+      })
+
+      setMessages((currentMessages) =>
+        currentMessages.map((message) => ({
+          ...message,
+          recommendations: message.recommendations?.map((option) =>
+            option.restaurante.candidato_id === restaurante.candidato_id
+              ? {
+                  ...option,
+                  restaurante: recommendationToInternalRestaurant(restaurante, saved),
+                }
+              : option,
+          ),
+        })),
+      )
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, 'Nao foi possivel salvar essa recomendacao.'))
+    } finally {
+      setSavingRecommendationId(null)
     }
   }
 
@@ -88,18 +200,18 @@ export function ChatPage() {
   return (
     <section className={styles.page}>
       <PageHeader
-        action={<span className={styles.pageBadge}>IA pronta para testar</span>}
-        description="Uma experiencia mais alinhada ao produto, com atalhos de conversa, bolhas mais amigaveis e um composer visualmente mais forte."
-        eyebrow="Chat com IA"
-        title="Converse com a IA do Comidinhas em um fluxo mais vivo e acolhedor."
+        action={<span className={styles.pageBadge}>Busca com IA</span>}
+        description="Diga o que voces querem comer e receba opcoes salvas no contexto ou descobertas no Google."
+        eyebrow="IA recomenda"
+        title="Converse com a IA para escolher restaurantes."
       />
 
       <section className={`surfaceCard ${styles.spotlight}`}>
         <div className={styles.spotlightCopy}>
           <span className={styles.spotlightLabel}>Sugestoes rapidas</span>
-          <h2 className={styles.spotlightTitle}>Use um atalho para puxar o assunto e testar o tom do assistente.</h2>
+          <h2 className={styles.spotlightTitle}>Puxe uma vontade e deixe a IA montar os cards.</h2>
           <p className={styles.spotlightDescription}>
-            Os chips abaixo ajudam a reproduzir a identidade da marca e ainda aceleram o teste do endpoint.
+            Funciona melhor quando voce fala comida, bairro, budget ou clima do momento.
           </p>
         </div>
 
@@ -123,13 +235,13 @@ export function ChatPage() {
             <div>
               <h2 className={styles.panelTitle}>Conversa</h2>
               <p className={styles.panelDescription}>
-                O historico da sessao e enviado a cada nova pergunta.
+                Contexto ativo: {grupo?.nome ?? 'perfil individual'}
               </p>
             </div>
 
             <div className={styles.panelTags}>
-              <span className={styles.panelTag}>Historico automatico</span>
-              <span className={styles.panelTag}>System prompt opcional</span>
+              <span className={styles.panelTag}>Comidinhas</span>
+              <span className={styles.panelTag}>Google quando fizer sentido</span>
             </div>
           </div>
 
@@ -141,7 +253,12 @@ export function ChatPage() {
             />
           ) : null}
 
-          <ChatMessageList isLoading={isSubmitting} messages={messages} />
+          <ChatMessageList
+            isLoading={isSubmitting}
+            messages={messages}
+            onSaveGoogleRecommendation={handleSaveGoogleRecommendation}
+            savingRecommendationId={savingRecommendationId}
+          />
         </section>
 
         <div className={styles.sideColumn}>
@@ -152,13 +269,11 @@ export function ChatPage() {
             onClearConversation={handleClearConversation}
             onDraftChange={setDraft}
             onSubmit={handleSubmit}
-            onSystemPromptChange={setSystemPrompt}
-            systemPrompt={systemPrompt}
           />
 
           <aside className={`surfaceCard ${styles.helpCard}`}>
-            <span className={styles.helpEyebrow}>Pensado para evoluir</span>
-            <h2 className={styles.helpTitle}>Uma base visual mais proxima da identidade do app.</h2>
+            <span className={styles.helpEyebrow}>Como pedir</span>
+            <h2 className={styles.helpTitle}>Fale como se estivesse decidindo agora.</h2>
 
             <ul className={styles.helpList}>
               {helpItems.map((item) => (

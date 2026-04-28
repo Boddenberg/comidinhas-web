@@ -7,9 +7,32 @@ import type {
   SignupRequest,
 } from '../types'
 
-type GrupoListResponse = {
-  items: Grupo[]
-  total: number
+type GrupoListResponse =
+  | {
+      items?: Grupo[]
+      total?: number
+    }
+  | Grupo[]
+
+export type GrupoCreatePayload = {
+  nome: string
+  tipo?: 'casal' | 'grupo' | 'individual'
+  descricao?: string
+  membros?: Array<{ perfil_id?: string; email?: string }>
+}
+
+function normalizeGrupoList(response: GrupoListResponse): Grupo[] {
+  if (Array.isArray(response)) return response
+  return response.items ?? []
+}
+
+function chooseDefaultGrupo(perfil: Perfil, grupos: Grupo[]) {
+  return (
+    grupos.find((grupo) => grupo.id === perfil.grupo_individual_id) ??
+    grupos.find((grupo) => grupo.tipo === 'individual') ??
+    grupos[0] ??
+    null
+  )
 }
 
 export async function fetchProfileByEmail(email: string): Promise<Perfil | null> {
@@ -40,19 +63,21 @@ export function updateProfile(perfilId: string, payload: ProfileUpdateRequest) {
   )
 }
 
-export function listGrupos() {
-  return apiClient.get<GrupoListResponse>('/api/v1/grupos/')
+export async function fetchPerfilContextos(perfilId: string) {
+  const response = await apiClient.get<GrupoListResponse>(
+    `/api/v1/perfis/${perfilId}/contextos`,
+  )
+  return normalizeGrupoList(response)
+}
+
+export async function listGrupos(perfilId?: string) {
+  const query = perfilId ? `?perfil_id=${encodeURIComponent(perfilId)}` : ''
+  const response = await apiClient.get<GrupoListResponse>(`/api/v1/grupos/${query}`)
+  return normalizeGrupoList(response)
 }
 
 export function fetchGrupo(grupoId: string) {
   return apiClient.get<Grupo>(`/api/v1/grupos/${grupoId}`)
-}
-
-type GrupoCreatePayload = {
-  nome: string
-  tipo?: 'casal' | 'grupo'
-  descricao?: string
-  membros?: Array<{ nome: string; email: string | null }>
 }
 
 export function createGrupo(payload: GrupoCreatePayload) {
@@ -66,56 +91,36 @@ export function updateGrupo(grupoId: string, payload: Partial<GrupoCreatePayload
   )
 }
 
-/** Find an existing grupo whose membros contains this email. */
-export async function findGrupoByMemberEmail(email: string) {
-  const list = await listGrupos()
-  const target = email.trim().toLowerCase()
-  return (
-    list.items.find((grupo) =>
-      grupo.membros.some((membro) => (membro.email ?? '').toLowerCase() === target),
-    ) ?? null
-  )
+export async function loadPerfilContext(perfil: Perfil) {
+  let grupos = await fetchPerfilContextos(perfil.id).catch(() => [] as Grupo[])
+
+  if (grupos.length === 0) {
+    grupos = await listGrupos(perfil.id).catch(() => [] as Grupo[])
+  }
+
+  if (grupos.length === 0 && perfil.grupo_individual_id) {
+    const grupoIndividual = await fetchGrupo(perfil.grupo_individual_id).catch(() => null)
+    if (grupoIndividual) grupos = [grupoIndividual]
+  }
+
+  const grupo = chooseDefaultGrupo(perfil, grupos)
+  if (!grupo) {
+    throw new ApiError('Este perfil ainda nao tem um contexto disponivel.', 404, null)
+  }
+
+  return { perfil, grupo, grupos }
 }
 
-/** Sign up = create perfil + create grupo (or join existing if email already in some grupo). */
 export async function signup(payload: SignupRequest) {
   const perfil = await createProfile(payload)
-  const existingGrupo = await findGrupoByMemberEmail(perfil.email ?? '').catch(() => null)
-  let grupo: Grupo
-  if (existingGrupo) {
-    grupo = existingGrupo
-  } else {
-    grupo = await createGrupo({
-      nome: `Casal de ${perfil.nome.split(' ')[0] ?? perfil.nome}`,
-      tipo: 'casal',
-      descricao: 'Nossos lugares favoritos',
-      membros: [{ nome: perfil.nome, email: perfil.email }],
-    })
-  }
-  return { perfil, grupo }
+  return loadPerfilContext(perfil)
 }
 
-/** Sign in = find perfil by email; if there's no grupo for them, create one. */
 export async function signin({ email }: SigninRequest) {
   const perfil = await fetchProfileByEmail(email)
   if (!perfil) {
-    throw new ApiError(
-      'Não encontramos uma conta com esse e-mail.',
-      404,
-      null,
-    )
+    throw new ApiError('Nao encontramos uma conta com esse e-mail.', 404, null)
   }
-  const existingGrupo = await findGrupoByMemberEmail(perfil.email ?? email).catch(() => null)
-  let grupo: Grupo
-  if (existingGrupo) {
-    grupo = existingGrupo
-  } else {
-    grupo = await createGrupo({
-      nome: `Casal de ${perfil.nome.split(' ')[0] ?? perfil.nome}`,
-      tipo: 'casal',
-      descricao: 'Nossos lugares favoritos',
-      membros: [{ nome: perfil.nome, email: perfil.email }],
-    })
-  }
-  return { perfil, grupo }
+
+  return loadPerfilContext(perfil)
 }
