@@ -2,10 +2,17 @@ import type { ReactElement, SVGProps } from 'react'
 
 type IconName =
   | 'home'
+  | 'users'
+  | 'grid'
   | 'search'
   | 'heart'
   | 'heart-filled'
   | 'bookmark'
+  | 'book-open'
+  | 'mail'
+  | 'link'
+  | 'copy'
+  | 'share'
   | 'sparkles'
   | 'trophy'
   | 'clock'
@@ -49,6 +56,33 @@ const paths: Record<IconName, ReactElement> = {
       strokeLinejoin="round"
     />
   ),
+  users: (
+    <>
+      <circle cx={9} cy={8.5} r={3.2} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <path
+        d="M3.8 20a5.2 5.2 0 0 1 10.4 0"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.7}
+      />
+      <path
+        d="M15.8 11a2.8 2.8 0 1 0-1.1-5.4M16.2 15.4A4.8 4.8 0 0 1 20.3 20"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.7}
+      />
+    </>
+  ),
+  grid: (
+    <>
+      <rect x={4} y={4} width={6} height={6} rx={1.5} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <rect x={14} y={4} width={6} height={6} rx={1.5} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <rect x={4} y={14} width={6} height={6} rx={1.5} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <rect x={14} y={14} width={6} height={6} rx={1.5} fill="none" stroke="currentColor" strokeWidth={1.7} />
+    </>
+  ),
   search: (
     <>
       <circle cx={11} cy={11} r={6.5} fill="none" stroke="currentColor" strokeWidth={1.7} />
@@ -78,6 +112,60 @@ const paths: Record<IconName, ReactElement> = {
       strokeWidth={1.7}
       strokeLinejoin="round"
     />
+  ),
+  'book-open': (
+    <path
+      d="M4 5.5A3 3 0 0 1 7 4h4v15H7a3 3 0 0 0-3 1.5v-15Zm16 0A3 3 0 0 0 17 4h-4v15h4a3 3 0 0 1 3 1.5v-15Z"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+    />
+  ),
+  mail: (
+    <path
+      d="M4 6h16v12H4V6Zm1.5 1.5 6.5 5 6.5-5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+    />
+  ),
+  link: (
+    <path
+      d="M9.6 14.4 14.4 9.6M10.8 6.2l1.1-1.1a4 4 0 0 1 5.7 5.7l-1.4 1.4a4 4 0 0 1-5.7 0M13.2 17.8l-1.1 1.1a4 4 0 0 1-5.7-5.7l1.4-1.4a4 4 0 0 1 5.7 0"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+    />
+  ),
+  copy: (
+    <path
+      d="M8 8h10v10H8V8Zm-2 8H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+    />
+  ),
+  share: (
+    <>
+      <circle cx={18} cy={5} r={2.5} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <circle cx={6} cy={12} r={2.5} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <circle cx={18} cy={19} r={2.5} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <path
+        d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.7}
+      />
+    </>
   ),
   sparkles: (
     <>

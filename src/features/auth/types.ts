@@ -22,6 +22,8 @@ export type Grupo = {
   nome: string
   tipo: 'individual' | 'casal' | 'grupo' | string
   descricao: string | null
+  codigo?: string | null
+  foto_url?: string | null
   dono_perfil_id?: string | null
   membros: Membro[]
   criado_em?: string | null

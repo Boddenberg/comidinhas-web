@@ -24,7 +24,9 @@ export function LoginPage() {
     try {
       await signIn({ email: email.trim().toLowerCase() })
       const state = location.state as LocationState
-      const redirectTo = state?.from?.pathname ?? '/'
+      const redirectTo = state?.from
+        ? `${state.from.pathname}${state.from.search}${state.from.hash}`
+        : '/'
       navigate(redirectTo, { replace: true })
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Não encontramos uma conta com esse e-mail.'))
@@ -38,7 +40,7 @@ export function LoginPage() {
       footer={
         <>
           Ainda não têm conta?
-          <Link className={styles.footerLink} to="/signup">
+          <Link className={styles.footerLink} state={location.state} to="/signup">
             Criar agora
           </Link>
         </>

@@ -4,6 +4,8 @@ import { ProfilePage } from '@/features/auth/pages/ProfilePage'
 import { SignupPage } from '@/features/auth/pages/SignupPage'
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
 import { ChatPage } from '@/features/chat/pages/ChatPage'
+import { GroupsHubPage } from '@/features/groups/pages/GroupsHubPage'
+import { JoinGroupPage } from '@/features/groups/pages/JoinGroupPage'
 import { GuidesPage } from '@/features/guides/pages/GuidesPage'
 import { HomePage } from '@/features/home/pages/HomePage'
 import { NearbyRestaurantsPage } from '@/features/nearby-restaurants/pages/NearbyRestaurantsPage'
@@ -23,6 +25,8 @@ export const router = createBrowserRouter([
           { index: true, element: <HomePage /> },
           { path: 'chat', element: <ChatPage /> },
           { path: 'favoritos', element: <PlacesListPage /> },
+          { path: 'grupos', element: <GroupsHubPage /> },
+          { path: 'entrar', element: <JoinGroupPage /> },
           { path: 'guias', element: <GuidesPage /> },
           { path: 'lugares', element: <PlacesListPage /> },
           { path: 'lugares/novo', element: <Navigate replace to="/" /> },

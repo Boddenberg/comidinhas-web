@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, type Location } from 'react-router-dom'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Button } from '@/shared/ui/Button/Button'
 import { useAuth } from '../AuthContext'
 import { AuthLayout } from '../components/AuthLayout'
 import styles from './AuthForm.module.css'
 
+type LocationState = { from?: Location } | null
+
 export function SignupPage() {
   const { signUp } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
 
   const [nome, setNome] = useState('')
@@ -28,7 +31,11 @@ export function SignupPage() {
         cidade: cidade.trim() || undefined,
         bio: bio.trim() || undefined,
       })
-      navigate('/', { replace: true })
+      const state = location.state as LocationState
+      const redirectTo = state?.from
+        ? `${state.from.pathname}${state.from.search}${state.from.hash}`
+        : '/'
+      navigate(redirectTo, { replace: true })
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Não foi possível criar a conta agora.'))
     } finally {
@@ -41,7 +48,7 @@ export function SignupPage() {
       footer={
         <>
           Já têm conta?
-          <Link className={styles.footerLink} to="/login">
+          <Link className={styles.footerLink} state={location.state} to="/login">
             Entrar
           </Link>
         </>
