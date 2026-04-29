@@ -6,22 +6,16 @@
   display: grid;
   gap: 1.1rem;
   font-family: var(--font-display);
-  grid-template-columns: minmax(0, 1fr) clamp(20rem, 28vw, 25rem);
+  grid-template-columns: minmax(0, 3fr) minmax(22rem, 1fr);
   align-items: start;
 }
 
 .mainCol {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  min-width: 0;
+  display: contents;
 }
 
 .sideCol {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  min-width: 0;
+  display: contents;
 }
 
 /* ============================================================
@@ -96,6 +90,8 @@
   background: linear-gradient(115deg, #1d3aa3 0%, #224bb6 50%, #2c5acd 100%);
   border-radius: 24px;
   display: grid;
+  grid-column: 1;
+  grid-row: 1;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   isolation: isolate;
   min-height: 19.5rem;
@@ -268,6 +264,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  grid-column: 1;
+  grid-row: 2;
   padding: 0.95rem 1.05rem 1rem;
 }
 
@@ -325,7 +323,7 @@
 }
 
 .suggestThumb {
-  aspect-ratio: 16 / 6.4;
+  aspect-ratio: 16 / 5.1;
   background: linear-gradient(135deg, #efe9fd 0%, #fdd9e1 100%);
   position: relative;
   width: 100%;
@@ -459,6 +457,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  grid-column: 2;
+  grid-row: 1;
   justify-content: space-between;
   max-width: 21.5rem;
   min-height: 19.5rem;
@@ -600,8 +600,10 @@
 .discoverGrid {
   display: grid;
   gap: 0.75rem;
+  grid-column: 2;
+  grid-row: 2;
   grid-template-columns: minmax(0, 1.45fr) minmax(7.25rem, 0.8fr);
-  grid-template-rows: minmax(9.25rem, 1.1fr) minmax(6.75rem, 0.85fr);
+  grid-template-rows: minmax(8.4rem, 1.05fr) minmax(6.25rem, 0.8fr);
 }
 
 .mapCard {
@@ -619,7 +621,7 @@
 .mapPreview {
   border-radius: 14px;
   flex: 1 1 auto;
-  min-height: 8.25rem;
+  min-height: 7.3rem;
   overflow: hidden;
   position: relative;
 }
@@ -732,7 +734,7 @@
   gap: 0.18rem;
   isolation: isolate;
   overflow: hidden;
-  min-height: 9.25rem;
+  min-height: 8.4rem;
   padding: 0.95rem 1rem 1rem;
   position: relative;
 }
@@ -840,7 +842,7 @@
   display: flex;
   gap: 0.65rem;
   justify-content: space-between;
-  min-height: 6.75rem;
+  min-height: 6.25rem;
   overflow: hidden;
   padding: 0.85rem 1rem;
   position: relative;
@@ -891,6 +893,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  grid-column: 1 / -1;
+  grid-row: 3;
 }
 
 .paraVocesHeader {
@@ -1125,6 +1129,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  grid-column: 1 / -1;
+  grid-row: 4;
   padding: 1.05rem 1.1rem 1.05rem;
 }
 
@@ -1289,8 +1295,22 @@
     grid-template-columns: 1fr;
   }
 
+  .mainCol,
   .sideCol {
+    display: flex;
     flex-direction: column;
+    gap: 1.1rem;
+    min-width: 0;
+  }
+
+  .hero,
+  .suggestSection,
+  .aiCard,
+  .discoverGrid,
+  .paraVocesSection,
+  .activityCard {
+    grid-column: auto;
+    grid-row: auto;
   }
 }
 
