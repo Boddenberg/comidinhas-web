@@ -98,10 +98,12 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   isolation: isolate;
+  margin-right: -2.2rem;
   min-height: 19.5rem;
   overflow: hidden;
   padding: 2rem 2.2rem;
   position: relative;
+  width: calc(100% + 2.2rem);
 }
 
 .hero::before {
@@ -180,11 +182,11 @@
 .heroIllustration {
   align-items: stretch;
   display: flex;
-  inset: 0 -1.4rem 0 auto;
+  inset: 0 0 0 auto;
   justify-content: flex-end;
   pointer-events: none;
   position: absolute;
-  width: 63%;
+  width: 58%;
   z-index: 1;
 }
 
