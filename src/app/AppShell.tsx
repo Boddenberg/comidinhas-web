@@ -15,9 +15,9 @@ import styles from './AppShell.module.css'
 const navigation = [
   { icon: 'home', label: 'Início', to: '/' },
   { icon: 'users', label: 'Grupos', to: '/grupos' },
-  { icon: 'heart', label: 'Lugares', to: '/lugares' },
+  { icon: 'pin', label: 'Lugares', to: '/lugares' },
   { icon: 'bookmark', label: 'Guias', to: '/guias' },
-  { icon: 'sparkles', label: 'IA Decide', to: '/chat' },
+  { icon: 'sparkles', label: 'IA Decide', to: '/chat', badge: 'novo' },
   { icon: 'search', label: 'Explorar', to: '/explorar' },
   { icon: 'user', label: 'Nosso perfil', to: '/perfil' },
 ] as const
@@ -175,7 +175,6 @@ function Shell() {
   }, [menuOpen])
 
   const displayName = grupo?.nome || perfil?.nome || 'Comidinhas'
-  const activeProfileName = getProfileLabel(grupo, perfil)
   const profileOptions = useMemo(
     () => orderProfileGroups(grupos, grupo, perfil),
     [grupo, grupos, perfil],
@@ -216,7 +215,7 @@ function Shell() {
             <strong>comidinhas</strong>
             <span className={styles.brandTagline}>
               nossas escolhas, nossos rolês{' '}
-              <Icon name="heart-filled" size={11} className={styles.brandHeart} />
+              <Icon name="heart-filled" size={10} className={styles.brandHeart} />
             </span>
           </span>
         </NavLink>
@@ -231,16 +230,20 @@ function Shell() {
                 isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
               }
             >
-              <Icon name={item.icon} size={20} className={styles.navIcon} />
-              <span>{item.label}</span>
+              <Icon name={item.icon} size={19} className={styles.navIcon} />
+              <span className={styles.navLabel}>{item.label}</span>
+              {'badge' in item && item.badge ? (
+                <span className={styles.navBadge}>{item.badge}</span>
+              ) : null}
             </NavLink>
           ))}
         </nav>
 
-        <section className={styles.profilePanel} aria-label="Selecionar perfil ativo">
-          <span className={styles.profileEyebrow}>Perfil ativo</span>
-          <strong className={styles.profileActiveName}>{activeProfileName}</strong>
-          <p>Lugares, guias e IA acompanham o perfil selecionado aqui.</p>
+        <section className={styles.profilePanel} aria-label="Perfis ativos">
+          <header className={styles.profilePanelHeader}>
+            <span className={styles.profileEyebrow}>Perfis ativos</span>
+            <Icon name="users" size={14} className={styles.profileEyebrowIcon} />
+          </header>
 
           {profileSwitchError ? (
             <span className={styles.profileError}>{profileSwitchError}</span>
@@ -252,6 +255,8 @@ function Shell() {
               const label = getProfileLabel(option, perfil)
               const kind = getProfileKindLabel(option, perfil)
               const photoUrl = getProfilePhotoUrl(option, perfil)
+              const personal = isPersonalGroup(option, perfil)
+              const subtitle = personal ? kind : `${kind} · ${getMemberCountLabel(option)}`
 
               return (
                 <button
@@ -264,28 +269,54 @@ function Shell() {
                   onClick={() => handleSelectProfile(option)}
                   type="button"
                 >
-                  <span className={styles.profileAvatar} aria-hidden="true">
+                  <span
+                    className={`${styles.profileAvatar} ${
+                      photoUrl ? '' : personal ? styles.profileAvatarPersonal : styles.profileAvatarGroup
+                    }`}
+                    aria-hidden="true"
+                  >
                     {photoUrl ? <img alt="" src={photoUrl} /> : getProfileInitial(label)}
                   </span>
                   <span className={styles.profileOptionText}>
                     <strong>{label}</strong>
-                    <small>
-                      {kind}
-                      {isPersonalGroup(option, perfil) ? '' : ` - ${getMemberCountLabel(option)}`}
-                    </small>
+                    <small>{subtitle}</small>
                   </span>
-                  {isActive ? <span className={styles.profileActiveDot} /> : null}
+                  {isActive ? <span className={styles.profileActiveDot} aria-hidden="true" /> : null}
                 </button>
               )
             })}
           </div>
+        </section>
+
+        <section className={styles.aiTipCard} aria-label="Dica da IA">
+          <header className={styles.aiTipHeader}>
+            <span className={styles.aiTipTitle}>
+              <Icon name="sparkles" size={13} />
+              Dica da IA
+            </span>
+            <span className={styles.aiTipBadge}>Hoje</span>
+          </header>
+          <p className={styles.aiTipText}>
+            Noite fresca combina com comida italiana e lugares aconchegantes.
+          </p>
+          <button
+            type="button"
+            className={styles.aiTipButton}
+            onClick={() => navigate('/chat')}
+          >
+            Ver sugestões
+            <Icon name="sparkles" size={12} />
+          </button>
+          <span className={styles.aiTipMascot} aria-hidden="true">
+            <AiMascot />
+          </span>
         </section>
       </aside>
 
       <div className={styles.body}>
         <header className={styles.topbar}>
           <label className={styles.search}>
-            <Icon name="search" size={18} className={styles.searchIcon} />
+            <Icon name="search" size={17} className={styles.searchIcon} />
             <input
               type="search"
               placeholder="Buscar restaurantes, pratos, tipos de comida..."
@@ -297,23 +328,14 @@ function Shell() {
           </label>
 
           <div className={styles.topbarMeta}>
-            <button
-              className={styles.addPlaceCTA}
-              onClick={() => openAddPlace()}
-              type="button"
-            >
-              <Icon name="plus" size={16} />
-              <span>Adicionar lugar</span>
-            </button>
-
-            <span className={styles.weather}>
-              <Icon name="cloud-sun" size={18} className={styles.weatherIcon} />
-              <span>23°C</span>
+            <span className={styles.location}>
+              <Icon name="pin" size={15} />
+              <span>São Paulo, SP</span>
             </span>
 
-            <span className={styles.location}>
-              <Icon name="pin" size={16} />
-              <span>São Paulo, SP</span>
+            <span className={styles.weather}>
+              <Icon name="cloud-sun" size={16} className={styles.weatherIcon} />
+              <span>23°C</span>
             </span>
 
             <button
@@ -328,7 +350,7 @@ function Shell() {
               }
               onClick={handleNotificationsClick}
             >
-              <Icon name="bell" size={18} />
+              <Icon name="bell" size={17} />
               {pendingCount > 0 ? (
                 <span className={styles.bellBadge} aria-hidden="true">
                   {pendingCount > 9 ? '9+' : pendingCount}
@@ -348,7 +370,7 @@ function Shell() {
                 <span className={styles.userAvatar} aria-hidden="true">
                   <img alt="" src="/casal-fv.png" />
                 </span>
-                <Icon name="chevron-down" size={14} className={styles.userChevron} />
+                <Icon name="chevron-down" size={13} className={styles.userChevron} />
               </button>
 
               {menuOpen ? (
@@ -400,40 +422,83 @@ function BrandLogo() {
     <svg
       aria-hidden="true"
       className={styles.brandMark}
-      height="44"
-      viewBox="0 0 44 44"
-      width="44"
+      height="38"
+      viewBox="0 0 38 38"
+      width="38"
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        <linearGradient id="comid-brand" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stopColor="#5b8def" />
-          <stop offset="1" stopColor="#1d4ed8" />
-        </linearGradient>
-        <linearGradient id="comid-heart" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stopColor="#f37291" />
-          <stop offset="1" stopColor="#c4456a" />
+        <linearGradient id="comid-brand-bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stopColor="#ff8a6c" />
+          <stop offset="1" stopColor="#f06b8c" />
         </linearGradient>
       </defs>
-      {/* hearts */}
+      <rect x="3" y="9" width="32" height="26" rx="9" fill="url(#comid-brand-bg)" />
+      <path d="M11 13 L13.5 9 H17 L19 13 H27 a3 3 0 0 1 3 3 v11 a3 3 0 0 1 -3 3 H11 a3 3 0 0 1 -3 -3 V16 a3 3 0 0 1 3 -3 Z" fill="url(#comid-brand-bg)" />
+      <circle cx="19" cy="22" r="5.4" fill="#fff" opacity="0.95" />
+      <circle cx="19" cy="22" r="3.2" fill="url(#comid-brand-bg)" />
+      <circle cx="27" cy="16.5" r="1.1" fill="#fff" opacity="0.85" />
       <path
-        d="M14 6c1.6 0 2.9 1.1 2.9 2.7 0 1.5-2.9 4-2.9 4s-2.9-2.5-2.9-4C11.1 7.1 12.4 6 14 6Z"
-        fill="url(#comid-heart)"
+        d="M13.5 5.5c1 0 1.8.6 1.8 1.6s-1.8 2.4-1.8 2.4-1.8-1.4-1.8-2.4 .8-1.6 1.8-1.6Z"
+        fill="#f06b8c"
       />
       <path
-        d="M22 4c1.6 0 2.9 1.1 2.9 2.7 0 1.5-2.9 4-2.9 4s-2.9-2.5-2.9-4C19.1 5.1 20.4 4 22 4Z"
-        fill="url(#comid-heart)"
+        d="M17.5 4c1 0 1.8.6 1.8 1.6s-1.8 2.4-1.8 2.4-1.8-1.4-1.8-2.4 .8-1.6 1.8-1.6Z"
+        fill="#f06b8c"
       />
-      {/* main glyph: rounded square + droplet */}
+    </svg>
+  )
+}
+
+function AiMascot() {
+  return (
+    <svg
+      width="74"
+      height="74"
+      viewBox="0 0 74 74"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="mascot-body" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#7e6dd9" />
+          <stop offset="1" stopColor="#5a4dba" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="58" cy="64" rx="14" ry="3" fill="#000" opacity="0.08" />
       <path
-        d="M22 14c5.5 0 10 4.5 10 10v4a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4v-4c0-5.5 4.5-10 10-10Z"
-        fill="url(#comid-brand)"
+        d="M35 47c0-9 7-16 16-16s16 7 16 16v9c0 5-3 8-8 8H43c-5 0-8-3-8-8v-9Z"
+        fill="url(#mascot-body)"
       />
+      <path d="M48 31v-6" stroke="url(#mascot-body)" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="48" cy="22" r="3" fill="#fbd13d" />
+      <circle cx="46" cy="46" r="2.6" fill="#fff" />
+      <circle cx="56" cy="46" r="2.6" fill="#fff" />
+      <circle cx="46.5" cy="46.5" r="1.3" fill="#1f2937" />
+      <circle cx="56.5" cy="46.5" r="1.3" fill="#1f2937" />
       <path
-        d="M22 19.5c2.4 0 4.4 1.7 4.4 4.4 0 2.4-2.4 4.4-4.4 4.4s-4.4-2-4.4-4.4c0-2.7 2-4.4 4.4-4.4Z"
-        fill="#fff"
+        d="M48 53c1.5 1 4.5 1 6 0"
+        stroke="#1f2937"
+        strokeWidth="1.6"
+        strokeLinecap="round"
       />
-      <circle cx="22" cy="23.5" r="1.6" fill="url(#comid-brand)" />
+      <ellipse cx="42" cy="51.5" rx="2" ry="1.4" fill="#f06b8c" opacity="0.5" />
+      <ellipse cx="60" cy="51.5" rx="2" ry="1.4" fill="#f06b8c" opacity="0.5" />
+      <path
+        d="M30 38c-2 1-3 4-2 7l4-1"
+        stroke="url(#mascot-body)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <circle cx="28" cy="35" r="3.5" fill="#fbd13d" />
+      <path
+        d="M27 33.5c-.4-.4-1-.4-1.4 0M29 33.5c-.4-.4-1-.4-1.4 0"
+        stroke="#1f2937"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }

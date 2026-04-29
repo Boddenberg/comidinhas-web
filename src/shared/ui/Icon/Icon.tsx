@@ -39,6 +39,12 @@ type IconName =
   | 'utensils'
   | 'image-plus'
   | 'circle-check'
+  | 'bookmark-filled'
+  | 'moon'
+  | 'compass'
+  | 'camera'
+  | 'leaf'
+  | 'globe'
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName
@@ -423,6 +429,63 @@ const paths: Record<IconName, ReactElement> = {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.8}
+      />
+    </>
+  ),
+  'bookmark-filled': (
+    <path
+      d="M6 4h12v17l-6-3.5L6 21V4Z"
+      fill="currentColor"
+    />
+  ),
+  moon: (
+    <path
+      d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5Z"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeLinejoin="round"
+      strokeWidth={1.4}
+    />
+  ),
+  compass: (
+    <>
+      <circle cx={12} cy={12} r={9} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <path
+        d="m15.5 8.5-2 5.5-5.5 2 2-5.5 5.5-2Z"
+        fill="currentColor"
+      />
+    </>
+  ),
+  camera: (
+    <>
+      <path
+        d="M5 8h3l1.4-2h5.2L16 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth={1.7}
+      />
+      <circle cx={12} cy={13.5} r={3.4} fill="none" stroke="currentColor" strokeWidth={1.7} />
+    </>
+  ),
+  leaf: (
+    <path
+      d="M5 19c0-8 6-14 15-14-1 9-6 14-13 14-1 0-2-.4-2-1.5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+    />
+  ),
+  globe: (
+    <>
+      <circle cx={12} cy={12} r={9} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <path
+        d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
       />
     </>
   ),
