@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
+import type { Grupo, Membro, Perfil } from '@/features/auth/types'
+import { resolveGroupBackgroundUrl } from '@/features/groups/lib/groupBackgrounds'
 import { listGuias, type Guia } from '@/features/guides/services/guidesService'
 import { useAddPlace } from '@/features/places/AddPlaceContext'
 import { PlaceCard } from '@/features/places/components/PlaceCard'
@@ -47,7 +49,7 @@ const aiCriteria = [
 
 const AI_SCOPE_OPTIONS: Array<{ id: DecideScope; label: string; hint: string }> = [
   { id: 'todos', label: 'Qualquer', hint: 'todos os lugares' },
-  { id: 'favoritos', label: 'Favoritos', hint: 'favoritos do contexto' },
+  { id: 'favoritos', label: 'Favoritos', hint: 'favoritos do perfil' },
   { id: 'quero_ir', label: 'Novos', hint: 'status quero ir' },
   { id: 'guia', label: 'Guia', hint: 'dentro de um guia' },
 ]
@@ -70,6 +72,67 @@ function getGuideCount(guia: Guia) {
 
 function getGuideInitial(nome: string) {
   return nome.trim().slice(0, 1).toUpperCase() || '#'
+}
+
+function getProfileInitial(nome: string) {
+  return nome.trim().slice(0, 1).toUpperCase() || 'P'
+}
+
+function memberKey(membro: Membro, index: number) {
+  return membro.perfil_id ?? membro.email ?? `${membro.nome}-${index}`
+}
+
+function isPersonalGroup(grupo: Grupo | null | undefined, perfil: Perfil | null) {
+  if (!grupo) return false
+  return grupo.tipo === 'individual' || grupo.id === perfil?.grupo_individual_id
+}
+
+function getProfileLabel(grupo: Grupo | null | undefined, perfil: Perfil | null) {
+  if (!grupo) return 'Perfil selecionado'
+  if (isPersonalGroup(grupo, perfil)) {
+    return perfil?.nome?.trim() || grupo.nome || 'Meu perfil'
+  }
+  return grupo.nome || 'Grupo'
+}
+
+function getProfileKindLabel(grupo: Grupo | null | undefined, perfil: Perfil | null) {
+  if (!grupo || isPersonalGroup(grupo, perfil)) return 'Perfil pessoal'
+  if (grupo.tipo === 'casal') return 'Casal'
+  return 'Grupo'
+}
+
+function getProfileMembers(grupo: Grupo | null | undefined, perfil: Perfil | null): Membro[] {
+  if (grupo?.membros?.length) return grupo.membros
+  return [
+    {
+      email: perfil?.email ?? null,
+      nome: perfil?.nome ?? 'Perfil',
+      perfil_id: perfil?.id ?? 'perfil-ativo',
+    },
+  ]
+}
+
+function getMemberCountLabel(total: number) {
+  return `${total} ${total === 1 ? 'membro' : 'membros'}`
+}
+
+function getProfilePhotoUrl(grupo: Grupo, perfil: Perfil | null) {
+  if (isPersonalGroup(grupo, perfil)) {
+    return perfil?.foto_url || (grupo.foto_url ? resolveGroupBackgroundUrl(grupo.foto_url) : null)
+  }
+  return grupo.foto_url ? resolveGroupBackgroundUrl(grupo.foto_url) : null
+}
+
+function orderProfileGroups(grupos: Grupo[], activeGrupo: Grupo | null, perfil: Perfil | null) {
+  const byId = new Map<string, Grupo>()
+  grupos.forEach((item) => byId.set(item.id, item))
+  if (activeGrupo) byId.set(activeGrupo.id, activeGrupo)
+
+  const items = Array.from(byId.values())
+  const personal = items.find((item) => isPersonalGroup(item, perfil))
+  if (!personal) return items
+
+  return [personal, ...items.filter((item) => item.id !== personal.id)]
 }
 
 function formatRelativeTime(iso: string) {
@@ -140,12 +203,14 @@ function prependPlaceToHome(home: HomeDashboard, place: Place): HomeDashboard {
 }
 
 export function HomePage() {
-  const { perfil, grupo } = useAuth()
+  const { perfil, grupo, grupos, selectGrupo } = useAuth()
   const { open: openAddPlace, registerOnCreated } = useAddPlace()
 
   const [decideState, setDecideState] = useState<DecideState>({ status: 'idle' })
   const [decideScope, setDecideScope] = useState<DecideScope>('todos')
   const [selectedGuiaId, setSelectedGuiaId] = useState('')
+  const [switchingGrupoId, setSwitchingGrupoId] = useState<string | null>(null)
+  const [profileSwitchError, setProfileSwitchError] = useState<string | null>(null)
   const [home, setHome] = useState<HomeDashboard | null>(null)
   const [homeError, setHomeError] = useState<string | null>(null)
   const [homeLoading, setHomeLoading] = useState(true)
@@ -231,12 +296,28 @@ export function HomePage() {
     setHome((current) => (current ? replacePlaceInHome(current, updated) : current))
   }
 
+  async function handleSelectPerfil(nextGrupo: Grupo) {
+    if (nextGrupo.id === grupo?.id || switchingGrupoId) return
+
+    setSwitchingGrupoId(nextGrupo.id)
+    setProfileSwitchError(null)
+    setDecideState({ status: 'idle' })
+
+    try {
+      await selectGrupo(nextGrupo.id)
+    } catch (err: unknown) {
+      setProfileSwitchError(getErrorMessage(err, 'Nao foi possivel trocar o perfil.'))
+    } finally {
+      setSwitchingGrupoId(null)
+    }
+  }
+
   async function handleDecide(evitarLugarIds: string[] = []) {
     setDecideState({ status: 'loading' })
 
     try {
       if (!grupo) {
-        throw new Error('Selecione um contexto antes de pedir uma escolha da IA.')
+        throw new Error('Selecione um perfil antes de pedir uma escolha da IA.')
       }
       if (decideScope === 'guia' && !selectedGuiaId) {
         throw new Error('Escolha um guia antes de pedir uma decisao dentro dele.')
@@ -311,6 +392,13 @@ export function HomePage() {
   }, [guias])
 
   const greeting = perfil?.nome?.split(' ')[0]?.toLowerCase() ?? 'gente'
+  const profileOptions = useMemo(
+    () => orderProfileGroups(grupos, grupo, perfil),
+    [grupo, grupos, perfil],
+  )
+  const activeProfileName = getProfileLabel(grupo, perfil)
+  const activeProfileKind = getProfileKindLabel(grupo, perfil)
+  const activeMembers = getProfileMembers(grupo, perfil)
   const totalPlaces = home?.counters.total_places ?? places.length
   const selectedScopeLabel =
     AI_SCOPE_OPTIONS.find((option) => option.id === decideScope)?.label ?? 'Qualquer'
@@ -326,6 +414,74 @@ export function HomePage() {
   return (
     <div className={styles.layout}>
       <div className={styles.content}>
+        <section className={styles.profileSwitcher} aria-label="Selecionar perfil">
+          <header className={styles.profileSwitcherHeader}>
+            <div>
+              <span className={styles.profileEyebrow}>Perfil ativo</span>
+              <h2>{activeProfileName}</h2>
+              <p>
+                Lugares, guias e IA acompanham o perfil selecionado aqui.
+              </p>
+            </div>
+            <Link className={styles.profileEditLink} to="/perfil">
+              <Icon name="pencil" size={14} />
+              Editar
+            </Link>
+          </header>
+
+          {profileSwitchError ? (
+            <p className={styles.profileSwitchError}>{profileSwitchError}</p>
+          ) : null}
+
+          <div className={styles.profileGrid}>
+            {profileOptions.map((option) => {
+              const isActive = option.id === grupo?.id
+              const label = getProfileLabel(option, perfil)
+              const kind = getProfileKindLabel(option, perfil)
+              const members = getProfileMembers(option, perfil)
+              const photoUrl = getProfilePhotoUrl(option, perfil)
+
+              return (
+                <button
+                  aria-pressed={isActive}
+                  className={`${styles.profileCard} ${
+                    isActive ? styles.profileCardActive : ''
+                  }`}
+                  disabled={Boolean(switchingGrupoId)}
+                  key={option.id}
+                  onClick={() => handleSelectPerfil(option)}
+                  type="button"
+                >
+                  <span className={styles.profilePhoto} aria-hidden="true">
+                    {photoUrl ? <img alt="" src={photoUrl} /> : getProfileInitial(label)}
+                  </span>
+                  <span className={styles.profileBody}>
+                    <strong>{label}</strong>
+                    <small>
+                      {kind} - {getMemberCountLabel(members.length)}
+                    </small>
+                  </span>
+                  <span className={styles.profileMemberStack} aria-hidden="true">
+                    {members.slice(0, 3).map((membro, index) => (
+                      <span key={memberKey(membro, index)}>
+                        {getProfileInitial(membro.nome)}
+                      </span>
+                    ))}
+                  </span>
+                  {isActive ? (
+                    <span className={styles.profileActiveIcon} aria-hidden="true">
+                      <Icon name="check" size={14} />
+                    </span>
+                  ) : null}
+                  {switchingGrupoId === option.id ? (
+                    <span className={styles.profileLoading}>Abrindo...</span>
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+
         <section className={styles.hero}>
           <img alt="" aria-hidden="true" className={styles.heroImage} src="/casal-fundo.png" />
           <div className={styles.heroSparkle} aria-hidden="true">
@@ -343,7 +499,7 @@ export function HomePage() {
               </span>
             </h1>
             <p className={styles.heroDescription}>
-              Oi, {greeting}! A IA decide com base no contexto {grupo?.nome ?? 'selecionado'}.
+              Oi, {greeting}! A IA decide com base no perfil {activeProfileName}.
             </p>
             <button
               className={styles.heroButton}
@@ -359,7 +515,7 @@ export function HomePage() {
 
         <QuickAddBar />
 
-        <section className={styles.statsGrid} aria-label="Resumo do contexto">
+        <section className={styles.statsGrid} aria-label="Resumo do perfil">
           {stats.map((stat) => (
             <article className={styles.statCard} key={stat.label}>
               <strong>{stat.value}</strong>
@@ -469,7 +625,7 @@ export function HomePage() {
               ))}
             </div>
           ) : places.length === 0 ? (
-            <p className={styles.emptyState}>Nenhum lugar criado neste contexto ainda.</p>
+            <p className={styles.emptyState}>Nenhum lugar criado neste perfil ainda.</p>
           ) : (
             <div className={styles.placeCarouselWrap}>
               <div className={styles.placeGrid}>
@@ -509,7 +665,7 @@ export function HomePage() {
           ) : guidesLoading ? (
             <p className={styles.muted}>Carregando guias...</p>
           ) : guideCards.length === 0 ? (
-            <p className={styles.emptyState}>Nenhum guia criado neste contexto ainda.</p>
+            <p className={styles.emptyState}>Nenhum guia criado neste perfil ainda.</p>
           ) : (
             <div className={styles.guidesGrid}>
               {guideCards.map((guide) => (
@@ -539,7 +695,7 @@ export function HomePage() {
             <span className={styles.aiAvatar} aria-hidden="true">
               <Icon name="robot" size={20} />
             </span>
-            <p>Escolho usando o contexto ativo, seus filtros e os restaurantes salvos.</p>
+            <p>Escolho usando o perfil ativo, seus filtros e os restaurantes salvos.</p>
           </div>
 
           <div className={styles.scopePicker} role="radiogroup" aria-label="Escopo da IA">
@@ -634,28 +790,26 @@ export function HomePage() {
 
         <section className={styles.railCard}>
           <header className={styles.railHeader}>
-            <h2>Contexto ativo</h2>
+            <h2>{activeProfileName}</h2>
             <Link aria-label="Editar perfil" className={styles.groupAddButton} to="/perfil">
               <Icon name="pencil" size={14} />
             </Link>
           </header>
 
           <div className={styles.groupMembers}>
-            {(grupo?.membros?.length
-              ? grupo.membros
-              : [{ email: null, nome: perfil?.nome ?? 'Perfil', perfil_id: 'perfil-ativo' }])
-              .slice(0, 4)
-              .map((membro) => (
-                <span
-                  className={`${styles.groupAvatarPhoto} ${styles.groupAvatarInitial}`}
-                  key={membro.perfil_id ?? membro.nome}
-                  title={membro.nome}
-                >
-                  {getGuideInitial(membro.nome)}
-                </span>
-              ))}
+            {activeMembers.slice(0, 4).map((membro, index) => (
+              <span
+                className={`${styles.groupAvatarPhoto} ${styles.groupAvatarInitial}`}
+                key={memberKey(membro, index)}
+                title={membro.nome}
+              >
+                {getProfileInitial(membro.nome)}
+              </span>
+            ))}
           </div>
-          <p className={styles.muted}>{grupo?.nome ?? 'Perfil individual'}</p>
+          <p className={styles.muted}>
+            {activeProfileKind} - {getMemberCountLabel(activeMembers.length)}
+          </p>
         </section>
       </aside>
     </div>

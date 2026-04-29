@@ -122,7 +122,7 @@ export function GuidesPage() {
             Adicionar lugar
           </button>
         }
-        description="Crie colecoes por contexto para organizar restaurantes e usar o escopo de guia na IA."
+        description="Crie colecoes por perfil para organizar restaurantes e usar o escopo de guia na IA."
         eyebrow="Guias"
         title="Organize lugares em listas do grupo."
       />
@@ -133,7 +133,7 @@ export function GuidesPage() {
         <form className={`surfaceCard ${styles.form}`} onSubmit={handleCreate}>
           <div>
             <h2>Novo guia</h2>
-            <p>O guia nasce no contexto ativo: {grupo?.nome ?? 'perfil individual'}.</p>
+            <p>O guia nasce no perfil ativo: {grupo?.nome ?? 'perfil individual'}.</p>
           </div>
 
           <label className="formField">
@@ -190,7 +190,7 @@ export function GuidesPage() {
 
         <section className={styles.guidesPanel}>
           <header className={styles.panelHeader}>
-            <h2>Guias do contexto</h2>
+            <h2>Guias do perfil</h2>
             <span>{guias.length} guias</span>
           </header>
 

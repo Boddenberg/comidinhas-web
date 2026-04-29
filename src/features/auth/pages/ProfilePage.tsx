@@ -1,9 +1,20 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Button } from '@/shared/ui/Button/Button'
 import { useAuth } from '../AuthContext'
 import { createGrupo } from '../services/authService'
+import type { Grupo, Perfil } from '../types'
 import styles from './ProfilePage.module.css'
+
+function isPersonalGroup(grupo: Grupo, perfil: Perfil | null) {
+  return grupo.tipo === 'individual' || grupo.id === perfil?.grupo_individual_id
+}
+
+function orderProfileGroups(grupos: Grupo[], perfil: Perfil | null) {
+  const personal = grupos.find((item) => isPersonalGroup(item, perfil))
+  if (!personal) return grupos
+  return [personal, ...grupos.filter((item) => item.id !== personal.id)]
+}
 
 export function ProfilePage() {
   const { perfil, grupo, grupos, selectGrupo, signOut, updatePerfil } = useAuth()
@@ -32,6 +43,8 @@ export function ProfilePage() {
     setCidade(perfil.cidade ?? '')
     setBio(perfil.bio ?? '')
   }, [perfil])
+
+  const orderedGrupos = useMemo(() => orderProfileGroups(grupos, perfil), [grupos, perfil])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -62,7 +75,7 @@ export function ProfilePage() {
     try {
       await selectGrupo(grupoId)
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Nao foi possivel trocar o contexto.'))
+      setError(getErrorMessage(err, 'Nao foi possivel trocar o perfil.'))
     } finally {
       setSwitchingGrupo(false)
     }
@@ -84,7 +97,11 @@ export function ProfilePage() {
     try {
       const created = await createGrupo({
         descricao: grupoDescricao.trim() || undefined,
-        membros: [{ perfil_id: perfil.id }, ...emails.map((memberEmail) => ({ email: memberEmail }))],
+        dono_perfil_id: perfil.id,
+        membros: [
+          { perfil_id: perfil.id },
+          ...emails.map((memberEmail) => ({ email: memberEmail })),
+        ],
         nome: grupoNome.trim(),
         tipo: grupoTipo,
       })
@@ -94,7 +111,7 @@ export function ProfilePage() {
       setMemberEmails('')
       setContextSuccess(true)
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Nao foi possivel criar o contexto.'))
+      setError(getErrorMessage(err, 'Nao foi possivel criar o grupo.'))
     } finally {
       setCreatingGrupo(false)
     }
@@ -109,23 +126,23 @@ export function ProfilePage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Nosso perfil</h1>
         <p className={styles.subtitle}>
-          Atualize as informacoes para deixar a IA mais certeira no contexto ativo.
+          Atualize as informacoes para deixar a IA mais certeira no perfil ativo.
         </p>
         {grupo ? (
           <p className={styles.groupChip}>
-            Contexto ativo: <strong>{grupo.nome}</strong>
+            Perfil ativo: <strong>{grupo.nome}</strong>
           </p>
         ) : null}
         {grupos.length > 1 ? (
           <label className={styles.contextSelect}>
-            <span>Contexto</span>
+            <span>Perfil</span>
             <select
               className="selectInput"
               disabled={switchingGrupo}
               onChange={(event) => handleGrupoChange(event.target.value)}
               value={grupo?.id ?? ''}
             >
-              {grupos.map((item) => (
+              {orderedGrupos.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.nome}
                 </option>
@@ -202,15 +219,15 @@ export function ProfilePage() {
 
       <form className={styles.form} onSubmit={handleCreateGrupo}>
         <div>
-          <h2 className={styles.formTitle}>Novo contexto</h2>
+          <h2 className={styles.formTitle}>Novo grupo</h2>
           <p className={styles.formDescription}>
-            Crie um casal ou grupo para separar lugares, guias, home e IA por contexto.
+            Crie um casal ou grupo para separar lugares, guias, home e IA por perfil.
           </p>
         </div>
 
         <div className={styles.gridFields}>
           <label className={styles.field}>
-            <span>Nome do contexto</span>
+            <span>Nome do grupo</span>
             <input
               className="textInput"
               disabled={creatingGrupo}
@@ -260,12 +277,12 @@ export function ProfilePage() {
           />
         </label>
 
-        {contextSuccess ? <p className={styles.success}>Contexto criado e selecionado.</p> : null}
+        {contextSuccess ? <p className={styles.success}>Grupo criado e selecionado.</p> : null}
 
         <div className={styles.actions}>
-          <span className={styles.contextHint}>O criador entra como membro do contexto.</span>
+          <span className={styles.contextHint}>O criador entra como dono do grupo.</span>
           <Button disabled={creatingGrupo || grupoNome.trim().length < 2} type="submit">
-            {creatingGrupo ? 'Criando...' : 'Criar contexto'}
+            {creatingGrupo ? 'Criando...' : 'Criar grupo'}
           </Button>
         </div>
       </form>

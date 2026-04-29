@@ -25,7 +25,7 @@ const quickPrompts = [
 
 const helpItems = [
   'A IA cruza seus lugares salvos com opcoes externas.',
-  'Se faltar contexto, ela pergunta antes de recomendar.',
+  'Se faltar detalhe, ela pergunta antes de recomendar.',
   'Opcoes do Google podem ser salvas direto no Comidinhas.',
 ]
 
@@ -122,7 +122,7 @@ export function ChatPage() {
 
     try {
       if (!grupo) {
-        throw new Error('Selecione um contexto antes de conversar com a IA.')
+        throw new Error('Selecione um perfil antes de conversar com a IA.')
       }
 
       const response = await sendChatMessage(
@@ -201,7 +201,7 @@ export function ChatPage() {
     <section className={styles.page}>
       <PageHeader
         action={<span className={styles.pageBadge}>Busca com IA</span>}
-        description="Diga o que voces querem comer e receba opcoes salvas no contexto ou descobertas no Google."
+        description="Diga o que voces querem comer e receba opcoes salvas no perfil ativo ou descobertas no Google."
         eyebrow="IA recomenda"
         title="Converse com a IA para escolher restaurantes."
       />
@@ -235,7 +235,7 @@ export function ChatPage() {
             <div>
               <h2 className={styles.panelTitle}>Conversa</h2>
               <p className={styles.panelDescription}>
-                Contexto ativo: {grupo?.nome ?? 'perfil individual'}
+                Perfil ativo: {grupo?.nome ?? 'perfil individual'}
               </p>
             </div>
 
