@@ -1,18 +1,45 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
+import {
+  listSolicitacoesGrupo,
+  type SolicitacaoEntradaGrupo,
+} from '@/features/auth/services/authService'
+import type { Grupo, Perfil } from '@/features/auth/types'
 import { AddPlaceProvider, useAddPlace } from '@/features/places/AddPlaceContext'
 import { Icon } from '@/shared/ui/Icon/Icon'
 import styles from './AppShell.module.css'
 
 const navigation = [
   { icon: 'home', label: 'Início', to: '/' },
+  { icon: 'users', label: 'Grupos', to: '/grupos' },
   { icon: 'heart', label: 'Lugares', to: '/lugares' },
   { icon: 'bookmark', label: 'Guias', to: '/guias' },
   { icon: 'sparkles', label: 'IA Decide', to: '/chat' },
   { icon: 'search', label: 'Explorar', to: '/explorar' },
   { icon: 'user', label: 'Nosso perfil', to: '/perfil' },
 ] as const
+
+const REQUESTS_REFRESH_MS = 30_000
+
+type PendingGroupRequest = {
+  group: Grupo
+  request: SolicitacaoEntradaGrupo
+}
+
+function sameProfile(member: Grupo['membros'][number], perfil: Perfil) {
+  if (member.perfil_id && member.perfil_id === perfil.id) return true
+  if (!member.email || !perfil.email) return false
+  return member.email.toLowerCase() === perfil.email.toLowerCase()
+}
+
+function canReviewJoinRequests(group: Grupo, perfil: Perfil | null) {
+  if (!perfil || group.tipo === 'individual') return false
+  if (group.dono_perfil_id === perfil.id) return true
+  if (group.dono_perfil_id) return false
+
+  return group.membros.some((member) => sameProfile(member, perfil))
+}
 
 export function AppShell() {
   return (
@@ -23,16 +50,67 @@ export function AppShell() {
 }
 
 function Shell() {
-  const { perfil, grupo, signOut } = useAuth()
+  const { perfil, grupo, grupos, signOut } = useAuth()
   const { open: openAddPlace } = useAddPlace()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [pendingRequests, setPendingRequests] = useState<PendingGroupRequest[]>([])
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+
+  const fetchPendingRequests = useCallback(async () => {
+    if (!perfil) {
+      setPendingRequests([])
+      return
+    }
+
+    const reviewableGroups = grupos.filter((item) => canReviewJoinRequests(item, perfil))
+    if (reviewableGroups.length === 0) {
+      setPendingRequests([])
+      return
+    }
+
+    setNotificationsLoading(true)
+    try {
+      const results = await Promise.allSettled(
+        reviewableGroups.map(async (item) => {
+          const response = await listSolicitacoesGrupo(item.id, perfil.id, 'pendente')
+          return response.items.map((request) => ({ group: item, request }))
+        }),
+      )
+
+      setPendingRequests(
+        results.flatMap((result) => (result.status === 'fulfilled' ? result.value : [])),
+      )
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }, [grupos, perfil])
 
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname])
+
+  useEffect(() => {
+    void fetchPendingRequests()
+    const timer = window.setInterval(() => {
+      void fetchPendingRequests()
+    }, REQUESTS_REFRESH_MS)
+
+    function refresh() {
+      void fetchPendingRequests()
+    }
+
+    window.addEventListener('comidinhas:group-requests-updated', refresh)
+    window.addEventListener('focus', refresh)
+
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('comidinhas:group-requests-updated', refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [fetchPendingRequests])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -46,6 +124,17 @@ function Shell() {
   }, [menuOpen])
 
   const displayName = grupo?.nome || perfil?.nome || 'Comidinhas'
+  const pendingCount = pendingRequests.length
+
+  function handleNotificationsClick() {
+    const first = pendingRequests[0]
+    if (!first) {
+      navigate('/grupos')
+      return
+    }
+
+    navigate(`/grupos?grupo=${encodeURIComponent(first.group.id)}&solicitacoes=pendentes`)
+  }
 
   return (
     <div className={styles.shell}>
@@ -128,11 +217,24 @@ function Shell() {
               <span>São Paulo, SP</span>
             </span>
 
-            <button type="button" className={styles.iconButton} aria-label="Notificações">
+            <button
+              type="button"
+              className={`${styles.iconButton} ${pendingCount > 0 ? styles.iconButtonActive : ''}`}
+              aria-label={
+                pendingCount > 0
+                  ? `${pendingCount} solicitacoes pendentes`
+                  : notificationsLoading
+                    ? 'Verificando notificacoes'
+                    : 'Notificacoes'
+              }
+              onClick={handleNotificationsClick}
+            >
               <Icon name="bell" size={18} />
-              <span className={styles.bellBadge} aria-hidden="true">
-                3
-              </span>
+              {pendingCount > 0 ? (
+                <span className={styles.bellBadge} aria-hidden="true">
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </span>
+              ) : null}
             </button>
 
             <div className={styles.userMenuWrap} ref={menuRef}>

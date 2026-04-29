@@ -313,6 +313,16 @@
   color: var(--color-text);
 }
 
+.iconButtonActive {
+  background: var(--color-primary-soft);
+  border-color: rgba(47, 109, 240, 0.34);
+  color: var(--color-primary);
+}
+
+.iconButtonActive:hover {
+  color: var(--color-primary-strong);
+}
+
 .bellBadge {
   align-items: center;
   background: var(--color-warning);
