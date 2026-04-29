@@ -6,7 +6,7 @@
   display: grid;
   gap: 1.1rem;
   font-family: var(--font-display);
-  grid-template-columns: minmax(0, 1fr) clamp(17rem, 25vw, 21.5rem);
+  grid-template-columns: minmax(0, 1fr) clamp(20rem, 28vw, 25rem);
   align-items: start;
 }
 
@@ -267,8 +267,8 @@
   border-radius: 22px;
   display: flex;
   flex-direction: column;
-  gap: 0.95rem;
-  padding: 1.05rem 1.2rem 1.1rem;
+  gap: 0.75rem;
+  padding: 0.95rem 1.05rem 1rem;
 }
 
 .suggestHeader {
@@ -325,7 +325,7 @@
 }
 
 .suggestThumb {
-  aspect-ratio: 16 / 11;
+  aspect-ratio: 16 / 6.4;
   background: linear-gradient(135deg, #efe9fd 0%, #fdd9e1 100%);
   position: relative;
   width: 100%;
@@ -390,8 +390,8 @@
 .suggestBody {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.7rem 0.85rem 0.85rem;
+  gap: 0.24rem;
+  padding: 0.58rem 0.78rem 0.68rem;
 }
 
 .suggestName {
@@ -444,9 +444,7 @@
 }
 
 .suggestFooter {
-  align-items: center;
-  display: flex;
-  justify-content: flex-end;
+  display: none;
 }
 
 /* ============================================================
@@ -454,6 +452,7 @@
    ============================================================ */
 
 .aiCard {
+  align-self: flex-end;
   background: #ffffff;
   border: 1px solid var(--color-line);
   border-radius: 22px;
@@ -461,8 +460,10 @@
   flex-direction: column;
   gap: 0.85rem;
   justify-content: space-between;
+  max-width: 21.5rem;
   min-height: 19.5rem;
   padding: 1.05rem 1.1rem 1.15rem;
+  width: 100%;
 }
 
 .aiCardHeader {
@@ -598,8 +599,9 @@
 
 .discoverGrid {
   display: grid;
-  gap: 0.7rem;
-  grid-template-columns: 1.55fr 1fr;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(7.25rem, 0.8fr);
+  grid-template-rows: minmax(9.25rem, 1.1fr) minmax(6.75rem, 0.85fr);
 }
 
 .mapCard {
@@ -617,7 +619,7 @@
 .mapPreview {
   border-radius: 14px;
   flex: 1 1 auto;
-  min-height: 8rem;
+  min-height: 8.25rem;
   overflow: hidden;
   position: relative;
 }
@@ -730,6 +732,7 @@
   gap: 0.18rem;
   isolation: isolate;
   overflow: hidden;
+  min-height: 9.25rem;
   padding: 0.95rem 1rem 1rem;
   position: relative;
 }
@@ -837,6 +840,7 @@
   display: flex;
   gap: 0.65rem;
   justify-content: space-between;
+  min-height: 6.75rem;
   overflow: hidden;
   padding: 0.85rem 1rem;
   position: relative;
