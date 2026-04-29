@@ -624,20 +624,33 @@ export function HomePage() {
                 </article>
               ))}
             </div>
-          ) : places.length === 0 ? (
-            <p className={styles.emptyState}>Nenhum lugar criado neste perfil ainda.</p>
           ) : (
             <div className={styles.placeCarouselWrap}>
+              {places.length === 0 ? (
+                <p className={styles.emptyState}>Nenhum lugar criado neste perfil ainda.</p>
+              ) : null}
               <div className={styles.placeGrid}>
                 {places.map((place) => (
                   <PlaceCard key={place.id} onUpdated={handlePlaceUpdated} place={place} />
                 ))}
                 <button
+                  aria-label="Adicionar lugar pelo Google Maps"
                   className={styles.addPlaceCard}
                   onClick={() => openAddPlace()}
                   type="button"
                 >
-                  <img alt="Adicionar lugar pelo Google Maps" src="/btn-google-maps.png" />
+                  <img alt="" aria-hidden="true" src="/btn-google-maps.png" />
+                  <span className={styles.addPlaceThumbSpacer} aria-hidden="true" />
+                  <span className={styles.addPlaceBodySpacer} aria-hidden="true">
+                    <span className={styles.addPlaceSpacerHead}>
+                      <strong>Adicionar lugar</strong>
+                      <small>Google Maps</small>
+                    </span>
+                    <span className={styles.addPlaceSpacerFooter}>
+                      <span>0,0</span>
+                      <span>Quero ir</span>
+                    </span>
+                  </span>
                 </button>
               </div>
 
