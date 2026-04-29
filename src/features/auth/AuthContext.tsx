@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { clearSession, readSession, writeSession } from './lib/tokenStorage'
+import { clearSession, readLastGrupoId, readSession, writeSession } from './lib/tokenStorage'
 import {
   fetchGrupo,
   fetchPerfilContextos,
@@ -42,6 +42,26 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 type ProviderProps = {
   children: ReactNode
+}
+
+async function chooseLastGrupo(perfil: Perfil, fallbackGrupo: Grupo, grupos: Grupo[]) {
+  const lastGrupoId = readLastGrupoId(perfil.id)
+  if (!lastGrupoId || lastGrupoId === fallbackGrupo.id) {
+    return { grupo: fallbackGrupo, grupos }
+  }
+
+  const storedGrupo = grupos.find((item) => item.id === lastGrupoId)
+  const fetchedGrupo = storedGrupo ?? (await fetchGrupo(lastGrupoId).catch(() => null))
+  if (!fetchedGrupo) {
+    return { grupo: fallbackGrupo, grupos }
+  }
+
+  return {
+    grupo: fetchedGrupo,
+    grupos: grupos.some((item) => item.id === fetchedGrupo.id)
+      ? grupos
+      : [fetchedGrupo, ...grupos],
+  }
 }
 
 export function AuthProvider({ children }: ProviderProps) {
@@ -106,7 +126,8 @@ export function AuthProvider({ children }: ProviderProps) {
   const signIn = useCallback(
     async (payload: SigninRequest) => {
       const { perfil: p, grupo: g, grupos: gs } = await signinRequest(payload)
-      persist(p, g, gs)
+      const preferred = await chooseLastGrupo(p, g, gs)
+      persist(p, preferred.grupo, preferred.grupos)
       setStatus('authenticated')
     },
     [persist],
@@ -115,7 +136,8 @@ export function AuthProvider({ children }: ProviderProps) {
   const signUp = useCallback(
     async (payload: SignupRequest) => {
       const { perfil: p, grupo: g, grupos: gs } = await signupRequest(payload)
-      persist(p, g, gs)
+      const preferred = await chooseLastGrupo(p, g, gs)
+      persist(p, preferred.grupo, preferred.grupos)
       setStatus('authenticated')
     },
     [persist],
