@@ -180,11 +180,11 @@
 .heroIllustration {
   align-items: stretch;
   display: flex;
-  inset: 0 0 0 auto;
+  inset: 0 -1.4rem 0 auto;
   justify-content: flex-end;
   pointer-events: none;
   position: absolute;
-  width: 58%;
+  width: 63%;
   z-index: 1;
 }
 
@@ -214,12 +214,11 @@
   border-radius: 14px;
   color: #fde6c4;
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 0.85rem;
   line-height: 1.15;
-  min-width: 10.2rem;
-  padding: 0.7rem 1.35rem;
+  padding: 0.55rem 0.85rem;
   position: absolute;
-  right: 1.05rem;
+  right: 1.6rem;
   top: 1.5rem;
   z-index: 2;
 }
