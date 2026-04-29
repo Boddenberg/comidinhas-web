@@ -122,6 +122,131 @@
   color: var(--color-primary);
 }
 
+.profilePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.2rem 0.35rem 0.65rem;
+}
+
+.profileEyebrow {
+  color: var(--color-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.profileActiveName {
+  color: var(--color-text);
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.profilePanel p {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  margin: 0 0 0.55rem;
+}
+
+.profileError {
+  background: rgba(216, 75, 75, 0.08);
+  border: 1px solid rgba(216, 75, 75, 0.2);
+  border-radius: 10px;
+  color: #a33a3a;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  padding: 0.45rem 0.55rem;
+}
+
+.profileList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.profileOption {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--color-text);
+  cursor: pointer;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 2.45rem minmax(0, 1fr) 0.5rem;
+  min-height: 3.25rem;
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.profileOption:hover:not(:disabled) {
+  background: var(--color-bg-soft);
+}
+
+.profileOption:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.profileOptionActive {
+  color: var(--color-primary);
+}
+
+.profileAvatar {
+  align-items: center;
+  background: var(--color-primary-soft);
+  border-radius: 999px;
+  color: var(--color-primary);
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 800;
+  height: 2.45rem;
+  justify-content: center;
+  overflow: hidden;
+  width: 2.45rem;
+}
+
+.profileAvatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.profileOptionText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.profileOptionText strong {
+  color: currentColor;
+  font-size: 0.82rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileOptionText small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileActiveDot {
+  background: var(--color-primary);
+  border-radius: 999px;
+  height: 0.35rem;
+  justify-self: center;
+  width: 0.35rem;
+}
+
 .coupleCard {
   background: linear-gradient(180deg, #fef3e9 0%, #fbe2d4 100%);
   border: 1px solid rgba(181, 67, 99, 0.12);
@@ -491,7 +616,8 @@
 
   .brandCopy,
   .navLink span,
-  .coupleCard {
+  .coupleCard,
+  .profilePanel {
     display: none;
   }
 

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
 import type { Grupo, Membro, Perfil } from '@/features/auth/types'
-import { resolveGroupBackgroundUrl } from '@/features/groups/lib/groupBackgrounds'
 import { listGuias, type Guia } from '@/features/guides/services/guidesService'
 import { useAddPlace } from '@/features/places/AddPlaceContext'
 import { PlaceCard } from '@/features/places/components/PlaceCard'
@@ -116,25 +115,6 @@ function getMemberCountLabel(total: number) {
   return `${total} ${total === 1 ? 'membro' : 'membros'}`
 }
 
-function getProfilePhotoUrl(grupo: Grupo, perfil: Perfil | null) {
-  if (isPersonalGroup(grupo, perfil)) {
-    return perfil?.foto_url || (grupo.foto_url ? resolveGroupBackgroundUrl(grupo.foto_url) : null)
-  }
-  return grupo.foto_url ? resolveGroupBackgroundUrl(grupo.foto_url) : null
-}
-
-function orderProfileGroups(grupos: Grupo[], activeGrupo: Grupo | null, perfil: Perfil | null) {
-  const byId = new Map<string, Grupo>()
-  grupos.forEach((item) => byId.set(item.id, item))
-  if (activeGrupo) byId.set(activeGrupo.id, activeGrupo)
-
-  const items = Array.from(byId.values())
-  const personal = items.find((item) => isPersonalGroup(item, perfil))
-  if (!personal) return items
-
-  return [personal, ...items.filter((item) => item.id !== personal.id)]
-}
-
 function formatRelativeTime(iso: string) {
   if (!iso) return ''
   const date = new Date(iso)
@@ -203,14 +183,12 @@ function prependPlaceToHome(home: HomeDashboard, place: Place): HomeDashboard {
 }
 
 export function HomePage() {
-  const { perfil, grupo, grupos, selectGrupo } = useAuth()
+  const { perfil, grupo } = useAuth()
   const { open: openAddPlace, registerOnCreated } = useAddPlace()
 
   const [decideState, setDecideState] = useState<DecideState>({ status: 'idle' })
   const [decideScope, setDecideScope] = useState<DecideScope>('todos')
   const [selectedGuiaId, setSelectedGuiaId] = useState('')
-  const [switchingGrupoId, setSwitchingGrupoId] = useState<string | null>(null)
-  const [profileSwitchError, setProfileSwitchError] = useState<string | null>(null)
   const [home, setHome] = useState<HomeDashboard | null>(null)
   const [homeError, setHomeError] = useState<string | null>(null)
   const [homeLoading, setHomeLoading] = useState(true)
@@ -296,22 +274,6 @@ export function HomePage() {
     setHome((current) => (current ? replacePlaceInHome(current, updated) : current))
   }
 
-  async function handleSelectPerfil(nextGrupo: Grupo) {
-    if (nextGrupo.id === grupo?.id || switchingGrupoId) return
-
-    setSwitchingGrupoId(nextGrupo.id)
-    setProfileSwitchError(null)
-    setDecideState({ status: 'idle' })
-
-    try {
-      await selectGrupo(nextGrupo.id)
-    } catch (err: unknown) {
-      setProfileSwitchError(getErrorMessage(err, 'Nao foi possivel trocar o perfil.'))
-    } finally {
-      setSwitchingGrupoId(null)
-    }
-  }
-
   async function handleDecide(evitarLugarIds: string[] = []) {
     setDecideState({ status: 'loading' })
 
@@ -392,10 +354,6 @@ export function HomePage() {
   }, [guias])
 
   const greeting = perfil?.nome?.split(' ')[0]?.toLowerCase() ?? 'gente'
-  const profileOptions = useMemo(
-    () => orderProfileGroups(grupos, grupo, perfil),
-    [grupo, grupos, perfil],
-  )
   const activeProfileName = getProfileLabel(grupo, perfil)
   const activeProfileKind = getProfileKindLabel(grupo, perfil)
   const activeMembers = getProfileMembers(grupo, perfil)
@@ -414,74 +372,6 @@ export function HomePage() {
   return (
     <div className={styles.layout}>
       <div className={styles.content}>
-        <section className={styles.profileSwitcher} aria-label="Selecionar perfil">
-          <header className={styles.profileSwitcherHeader}>
-            <div>
-              <span className={styles.profileEyebrow}>Perfil ativo</span>
-              <h2>{activeProfileName}</h2>
-              <p>
-                Lugares, guias e IA acompanham o perfil selecionado aqui.
-              </p>
-            </div>
-            <Link className={styles.profileEditLink} to="/perfil">
-              <Icon name="pencil" size={14} />
-              Editar
-            </Link>
-          </header>
-
-          {profileSwitchError ? (
-            <p className={styles.profileSwitchError}>{profileSwitchError}</p>
-          ) : null}
-
-          <div className={styles.profileGrid}>
-            {profileOptions.map((option) => {
-              const isActive = option.id === grupo?.id
-              const label = getProfileLabel(option, perfil)
-              const kind = getProfileKindLabel(option, perfil)
-              const members = getProfileMembers(option, perfil)
-              const photoUrl = getProfilePhotoUrl(option, perfil)
-
-              return (
-                <button
-                  aria-pressed={isActive}
-                  className={`${styles.profileCard} ${
-                    isActive ? styles.profileCardActive : ''
-                  }`}
-                  disabled={Boolean(switchingGrupoId)}
-                  key={option.id}
-                  onClick={() => handleSelectPerfil(option)}
-                  type="button"
-                >
-                  <span className={styles.profilePhoto} aria-hidden="true">
-                    {photoUrl ? <img alt="" src={photoUrl} /> : getProfileInitial(label)}
-                  </span>
-                  <span className={styles.profileBody}>
-                    <strong>{label}</strong>
-                    <small>
-                      {kind} - {getMemberCountLabel(members.length)}
-                    </small>
-                  </span>
-                  <span className={styles.profileMemberStack} aria-hidden="true">
-                    {members.slice(0, 3).map((membro, index) => (
-                      <span key={memberKey(membro, index)}>
-                        {getProfileInitial(membro.nome)}
-                      </span>
-                    ))}
-                  </span>
-                  {isActive ? (
-                    <span className={styles.profileActiveIcon} aria-hidden="true">
-                      <Icon name="check" size={14} />
-                    </span>
-                  ) : null}
-                  {switchingGrupoId === option.id ? (
-                    <span className={styles.profileLoading}>Abrindo...</span>
-                  ) : null}
-                </button>
-              )
-            })}
-          </div>
-        </section>
-
         <section className={styles.hero}>
           <img alt="" aria-hidden="true" className={styles.heroImage} src="/casal-fundo.png" />
           <div className={styles.heroSparkle} aria-hidden="true">

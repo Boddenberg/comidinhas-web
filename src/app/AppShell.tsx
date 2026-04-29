@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
@@ -6,7 +6,9 @@ import {
   type SolicitacaoEntradaGrupo,
 } from '@/features/auth/services/authService'
 import type { Grupo, Perfil } from '@/features/auth/types'
+import { resolveGroupBackgroundUrl } from '@/features/groups/lib/groupBackgrounds'
 import { AddPlaceProvider, useAddPlace } from '@/features/places/AddPlaceContext'
+import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
 import styles from './AppShell.module.css'
 
@@ -41,6 +43,53 @@ function canReviewJoinRequests(group: Grupo, perfil: Perfil | null) {
   return group.membros.some((member) => sameProfile(member, perfil))
 }
 
+function isPersonalGroup(group: Grupo | null | undefined, perfil: Perfil | null) {
+  if (!group) return false
+  return group.tipo === 'individual' || group.id === perfil?.grupo_individual_id
+}
+
+function getProfileLabel(group: Grupo | null | undefined, perfil: Perfil | null) {
+  if (!group) return 'Perfil selecionado'
+  if (isPersonalGroup(group, perfil)) {
+    return perfil?.nome?.trim() || group.nome || 'Meu perfil'
+  }
+  return group.nome || 'Grupo'
+}
+
+function getProfileKindLabel(group: Grupo, perfil: Perfil | null) {
+  if (isPersonalGroup(group, perfil)) return 'Pessoal'
+  if (group.tipo === 'casal') return 'Casal'
+  return 'Grupo'
+}
+
+function getProfileInitial(name: string) {
+  return name.trim().slice(0, 1).toUpperCase() || 'P'
+}
+
+function getProfilePhotoUrl(group: Grupo, perfil: Perfil | null) {
+  if (isPersonalGroup(group, perfil)) {
+    return perfil?.foto_url || (group.foto_url ? resolveGroupBackgroundUrl(group.foto_url) : null)
+  }
+  return group.foto_url ? resolveGroupBackgroundUrl(group.foto_url) : null
+}
+
+function getMemberCountLabel(group: Grupo) {
+  const total = group.membros.length
+  return `${total} ${total === 1 ? 'membro' : 'membros'}`
+}
+
+function orderProfileGroups(groups: Grupo[], activeGroup: Grupo | null, perfil: Perfil | null) {
+  const byId = new Map<string, Grupo>()
+  groups.forEach((item) => byId.set(item.id, item))
+  if (activeGroup) byId.set(activeGroup.id, activeGroup)
+
+  const items = Array.from(byId.values())
+  const personal = items.find((item) => isPersonalGroup(item, perfil))
+  if (!personal) return items
+
+  return [personal, ...items.filter((item) => item.id !== personal.id)]
+}
+
 export function AppShell() {
   return (
     <AddPlaceProvider>
@@ -50,13 +99,15 @@ export function AppShell() {
 }
 
 function Shell() {
-  const { perfil, grupo, grupos, signOut } = useAuth()
+  const { perfil, grupo, grupos, selectGrupo, signOut } = useAuth()
   const { open: openAddPlace } = useAddPlace()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [pendingRequests, setPendingRequests] = useState<PendingGroupRequest[]>([])
   const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [switchingGrupoId, setSwitchingGrupoId] = useState<string | null>(null)
+  const [profileSwitchError, setProfileSwitchError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   const fetchPendingRequests = useCallback(async () => {
@@ -124,7 +175,27 @@ function Shell() {
   }, [menuOpen])
 
   const displayName = grupo?.nome || perfil?.nome || 'Comidinhas'
+  const activeProfileName = getProfileLabel(grupo, perfil)
+  const profileOptions = useMemo(
+    () => orderProfileGroups(grupos, grupo, perfil),
+    [grupo, grupos, perfil],
+  )
   const pendingCount = pendingRequests.length
+
+  async function handleSelectProfile(nextGrupo: Grupo) {
+    if (nextGrupo.id === grupo?.id || switchingGrupoId) return
+
+    setSwitchingGrupoId(nextGrupo.id)
+    setProfileSwitchError(null)
+
+    try {
+      await selectGrupo(nextGrupo.id)
+    } catch (err: unknown) {
+      setProfileSwitchError(getErrorMessage(err, 'Nao foi possivel trocar o perfil.'))
+    } finally {
+      setSwitchingGrupoId(null)
+    }
+  }
 
   function handleNotificationsClick() {
     const first = pendingRequests[0]
@@ -166,21 +237,49 @@ function Shell() {
           ))}
         </nav>
 
-        <div className={styles.coupleCard}>
-          <div className={styles.coupleHeartBadge} aria-hidden="true">
-            <Icon name="heart-filled" size={12} />
+        <section className={styles.profilePanel} aria-label="Selecionar perfil ativo">
+          <span className={styles.profileEyebrow}>Perfil ativo</span>
+          <strong className={styles.profileActiveName}>{activeProfileName}</strong>
+          <p>Lugares, guias e IA acompanham o perfil selecionado aqui.</p>
+
+          {profileSwitchError ? (
+            <span className={styles.profileError}>{profileSwitchError}</span>
+          ) : null}
+
+          <div className={styles.profileList}>
+            {profileOptions.map((option) => {
+              const isActive = option.id === grupo?.id
+              const label = getProfileLabel(option, perfil)
+              const kind = getProfileKindLabel(option, perfil)
+              const photoUrl = getProfilePhotoUrl(option, perfil)
+
+              return (
+                <button
+                  aria-pressed={isActive}
+                  className={`${styles.profileOption} ${
+                    isActive ? styles.profileOptionActive : ''
+                  }`}
+                  disabled={Boolean(switchingGrupoId)}
+                  key={option.id}
+                  onClick={() => handleSelectProfile(option)}
+                  type="button"
+                >
+                  <span className={styles.profileAvatar} aria-hidden="true">
+                    {photoUrl ? <img alt="" src={photoUrl} /> : getProfileInitial(label)}
+                  </span>
+                  <span className={styles.profileOptionText}>
+                    <strong>{label}</strong>
+                    <small>
+                      {kind}
+                      {isPersonalGroup(option, perfil) ? '' : ` - ${getMemberCountLabel(option)}`}
+                    </small>
+                  </span>
+                  {isActive ? <span className={styles.profileActiveDot} /> : null}
+                </button>
+              )
+            })}
           </div>
-          <div className={styles.coupleAvatar} aria-label="Foto do casal" role="img">
-            <img alt={displayName} src="/casal-fv.png" />
-          </div>
-          <div className={styles.coupleInfo}>
-            <strong>{displayName}</strong>
-            <span>
-              {grupo?.tipo === 'casal' ? 'nosso casal' : 'nosso grupo'}{' '}
-              <Icon name="heart-filled" size={11} className={styles.brandHeart} />
-            </span>
-          </div>
-        </div>
+        </section>
       </aside>
 
       <div className={styles.body}>
