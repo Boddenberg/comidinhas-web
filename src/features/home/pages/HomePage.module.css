@@ -216,7 +216,8 @@
   font-family: inherit;
   font-size: 0.85rem;
   line-height: 1.15;
-  padding: 0.55rem 0.85rem;
+  min-width: 8.6rem;
+  padding: 0.55rem 1.15rem;
   position: absolute;
   right: 1.6rem;
   top: 1.5rem;
