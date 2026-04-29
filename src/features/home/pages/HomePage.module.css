@@ -6,7 +6,7 @@
   display: grid;
   gap: 1.1rem;
   font-family: var(--font-display);
-  grid-template-columns: minmax(0, 1fr) clamp(20rem, 28vw, 25rem);
+  grid-template-columns: minmax(0, 58rem) minmax(26rem, 1fr);
   align-items: start;
 }
 
@@ -606,7 +606,7 @@
 .discoverGrid {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: minmax(0, 1.45fr) minmax(7.25rem, 0.8fr);
+  grid-template-columns: minmax(0, 1.8fr) minmax(8.5rem, 0.8fr);
   grid-template-rows: minmax(9.25rem, 1.1fr) minmax(6.75rem, 0.85fr);
 }
 
@@ -875,7 +875,7 @@
 
 @media (max-width: 1280px) {
   .discoverGrid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1.65fr) minmax(8rem, 0.85fr);
   }
 }
 
