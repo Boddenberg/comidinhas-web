@@ -214,12 +214,12 @@
   border-radius: 14px;
   color: #fde6c4;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   line-height: 1.15;
-  min-width: 8.6rem;
-  padding: 0.55rem 1.15rem;
+  min-width: 10.2rem;
+  padding: 0.7rem 1.35rem;
   position: absolute;
-  right: 1.6rem;
+  right: 1.05rem;
   top: 1.5rem;
   z-index: 2;
 }
