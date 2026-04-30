@@ -882,6 +882,12 @@
   flex: 0 0 auto;
 }
 
+.googleMapsIcon img {
+  height: 4.4rem;
+  object-fit: contain;
+  width: 4.4rem;
+}
+
 @media (max-width: 1280px) {
   .discoverGrid {
     grid-template-columns: minmax(0, 1.25fr) minmax(10rem, 1fr);

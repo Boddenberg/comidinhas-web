@@ -11,6 +11,7 @@ import {
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
 import mapPreviewImage from '../../../../imagem horizontal maps.png'
+import googleMapsSaveImage from '../../../../imagem salvar google maps.png'
 import { fetchHome, type HomeDashboard } from '../services/homeService'
 import styles from './HomePage.module.css'
 
@@ -480,7 +481,7 @@ export function HomePage() {
               <strong>Google Maps</strong>
             </div>
             <span className={styles.googleMapsIcon} aria-hidden="true">
-              <GoogleMapsPin />
+              <img alt="" src={googleMapsSaveImage} />
             </span>
           </section>
         </div>
@@ -644,28 +645,3 @@ function ParaVocesCard({ place, index }: { place: Place; index: number }) {
   )
 }
 
-function GoogleMapsPin() {
-  return (
-    <svg
-      width="48"
-      height="62"
-      viewBox="0 0 48 62"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="gmaps-pin" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stopColor="#ea4335" />
-          <stop offset="1" stopColor="#bb2d23" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M24 2c11 0 20 8.6 20 19.5 0 14.5-20 38.5-20 38.5S4 36 4 21.5C4 10.6 13 2 24 2Z"
-        fill="url(#gmaps-pin)"
-      />
-      <circle cx="24" cy="21" r="9" fill="#fff" />
-      <circle cx="24" cy="21" r="5.5" fill="#34a853" />
-    </svg>
-  )
-}
