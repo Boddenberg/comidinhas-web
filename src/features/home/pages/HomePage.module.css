@@ -850,7 +850,7 @@
 
 .googleMapsCard {
   align-items: center;
-  background: linear-gradient(135deg, #fdb4a4 0%, #fb7186 100%);
+  background: #fb7186;
   border-radius: 18px;
   display: flex;
   gap: 0.65rem;
@@ -865,6 +865,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.05rem;
+  position: relative;
+  z-index: 2;
 }
 
 .googleMapsCopy strong {
@@ -879,13 +881,15 @@
 .googleMapsIcon {
   align-items: center;
   display: inline-flex;
-  flex: 0 0 auto;
+  inset: 0;
+  position: absolute;
+  z-index: 1;
 }
 
 .googleMapsIcon img {
-  height: 4.4rem;
-  object-fit: contain;
-  width: 4.4rem;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 @media (max-width: 1280px) {
