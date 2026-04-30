@@ -633,6 +633,12 @@
   position: relative;
 }
 
+.mapPreviewImage {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
 .mapPreviewArt {
   background:
     radial-gradient(circle at 30% 65%, #d8e6c9 0, transparent 32%),

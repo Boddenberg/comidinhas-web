@@ -10,6 +10,7 @@ import {
 } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
+import mapPreviewImage from '../../../../imagem horizontal maps.png'
 import { fetchHome, type HomeDashboard } from '../services/homeService'
 import styles from './HomePage.module.css'
 
@@ -436,12 +437,7 @@ export function HomePage() {
         <div className={styles.discoverGrid}>
           <section className={styles.mapCard}>
             <div className={styles.mapPreview} aria-hidden="true">
-              <div className={styles.mapPreviewArt}>
-                {/* placeholder map graphic */}
-                <span className={styles.mapPreviewPin}>
-                  <Icon name="pin" size={28} />
-                </span>
-              </div>
+              <img className={styles.mapPreviewImage} alt="" src={mapPreviewImage} />
             </div>
             <div className={styles.mapBody}>
               <div className={styles.mapTitle}>
