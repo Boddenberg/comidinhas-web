@@ -21,50 +21,111 @@ import {
 } from '../services/todayRecommendationsService'
 import styles from './HomePage.module.css'
 
-const aiTiles = [
+const aiMenus = [
   {
     id: 'humor',
     label: 'Humor',
-    value: 'Aventureiros',
-    emoji: '😎',
     tone: 'purple',
+    options: [
+      { id: 'qualquer', label: 'Qualquer', emoji: '✨' },
+      { id: 'aventureiros', label: 'Aventureiros', emoji: '😎' },
+      { id: 'confortavel', label: 'Confortável', emoji: '🫶' },
+      { id: 'romantico', label: 'Romântico', emoji: '💕' },
+      { id: 'animado', label: 'Animado', emoji: '🎉' },
+      { id: 'tranquilo', label: 'Tranquilo', emoji: '🌿' },
+      { id: 'sem_esforco', label: 'Sem esforço', emoji: '🛋️' },
+      { id: 'surpresa', label: 'Me surpreenda', emoji: '🎲' },
+    ],
   },
   {
     id: 'tipo',
     label: 'Tipo de comida',
-    value: 'Qualquer',
-    emoji: '🍕',
     tone: 'pink',
+    options: [
+      { id: 'qualquer', label: 'Qualquer', emoji: '🍕' },
+      { id: 'brasileira', label: 'Brasileira', emoji: '🍛' },
+      { id: 'italiana', label: 'Italiana', emoji: '🍝' },
+      { id: 'japonesa', label: 'Japonesa', emoji: '🍣' },
+      { id: 'arabe', label: 'Árabe', emoji: '🧆' },
+      { id: 'mexicana', label: 'Mexicana', emoji: '🌮' },
+      { id: 'burger', label: 'Burger', emoji: '🍔' },
+      { id: 'cafe_brunch', label: 'Café/Brunch', emoji: '☕' },
+      { id: 'barzinho', label: 'Barzinho', emoji: '🍸' },
+      { id: 'doces', label: 'Doces', emoji: '🍰' },
+    ],
   },
   {
     id: 'lugar',
     label: 'Lugar',
-    value: 'Qualquer',
-    emoji: '📍',
     tone: 'place',
+    options: [
+      { id: 'qualquer', label: 'Qualquer', emoji: '📍' },
+      { id: 'curtidos', label: 'Curtidos', emoji: '❤️' },
+      { id: 'nunca_fomos', label: 'Nunca fomos', emoji: '🆕' },
+      { id: 'ja_fomos', label: 'Já fomos', emoji: '✅' },
+      { id: 'quero_ir', label: 'Quero ir', emoji: '🔖' },
+      { id: 'perto_daqui', label: 'Perto daqui', emoji: '🧭' },
+      { id: 'dos_guias', label: 'Dos guias', emoji: '📚' },
+      { id: 'bem_avaliado', label: 'Bem avaliado', emoji: '⭐' },
+    ],
   },
   {
     id: 'clima',
     label: 'Clima',
-    value: 'Fresco',
-    emoji: '🍃',
     tone: 'blue',
+    options: [
+      { id: 'qualquer', label: 'Qualquer', emoji: '🌈' },
+      { id: 'fresco', label: 'Fresco', emoji: '🍃' },
+      { id: 'calor', label: 'Calor', emoji: '☀️' },
+      { id: 'friozinho', label: 'Friozinho', emoji: '🧥' },
+      { id: 'chuva', label: 'Chuva', emoji: '🌧️' },
+      { id: 'noite_boa', label: 'Noite boa', emoji: '🌙' },
+      { id: 'almoco', label: 'Almoço', emoji: '🌤️' },
+      { id: 'pos_trampo', label: 'Pós-trampo', emoji: '🌆' },
+    ],
   },
   {
     id: 'orcamento',
     label: 'Orçamento',
-    value: 'Até R$120',
-    emoji: '💵',
     tone: 'budget',
+    options: [
+      { id: 'qualquer', label: 'Qualquer', emoji: '💵' },
+      { id: 'ate_100', label: 'Até R$100', emoji: '💵' },
+      { id: 'ate_200', label: 'Até R$200', emoji: '💵' },
+      { id: 'ate_300', label: 'Até R$300', emoji: '💳' },
+      { id: 'ate_400', label: 'Até R$400', emoji: '💳' },
+      { id: 'ate_500', label: 'Até R$500', emoji: '👑' },
+      { id: 'sem_limite', label: 'Sem limite', emoji: '✨' },
+    ],
   },
   {
     id: 'distancia',
     label: 'Distância',
-    value: 'Pertinho',
-    emoji: '🚶',
     tone: 'distance',
+    options: [
+      { id: 'qualquer', label: 'Qualquer', emoji: '🚶' },
+      { id: 'pertinho', label: 'Pertinho', emoji: '🚶' },
+      { id: 'ate_1km', label: 'Até 1 km', emoji: '📍' },
+      { id: 'ate_3km', label: 'Até 3 km', emoji: '🚲' },
+      { id: 'ate_5km', label: 'Até 5 km', emoji: '🚗' },
+      { id: 'vale_uber', label: 'Vale Uber', emoji: '🚕' },
+      { id: 'qualquer_canto', label: 'Qualquer canto', emoji: '🗺️' },
+      { id: 'no_caminho', label: 'No caminho', emoji: '🧭' },
+    ],
   },
 ] as const
+
+type AiMenuId = (typeof aiMenus)[number]['id']
+type AiSelections = Record<AiMenuId, string>
+
+const initialAiSelections: AiSelections = {
+  humor: 'aventureiros',
+  tipo: 'qualquer',
+  lugar: 'qualquer',
+  clima: 'fresco',
+  orcamento: 'ate_100',
+  distancia: 'pertinho',
+}
 
 const PARA_VOCES_FILTERS = [
   { id: 'todos', label: 'Todos' },
@@ -181,6 +242,8 @@ export function HomePage() {
   const [todaySuggestionsLoading, setTodaySuggestionsLoading] = useState(true)
   const [paraVocesFilter, setParaVocesFilter] = useState<ParaVocesFilter>('todos')
   const [isDaytime, setIsDaytime] = useState(getIsDaytime)
+  const [aiSelections, setAiSelections] = useState<AiSelections>(initialAiSelections)
+  const [openAiMenu, setOpenAiMenu] = useState<AiMenuId | null>(null)
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -290,6 +353,14 @@ export function HomePage() {
 
   function handleDecide() {
     navigate('/chat')
+  }
+
+  function handleAiSelection(menuId: AiMenuId, optionId: string) {
+    setAiSelections((current) => ({
+      ...current,
+      [menuId]: optionId,
+    }))
+    setOpenAiMenu(null)
   }
 
   const suggestions = todaySuggestions
@@ -520,17 +591,61 @@ export function HomePage() {
           </header>
 
           <div className={styles.aiTilesGrid}>
-            {aiTiles.map((tile) => (
-              <div
-                key={tile.id}
-                className={`${styles.aiTile} ${styles[`aiTile_${tile.tone}`]}`}
-              >
-                <span className={styles.aiTileLabel}>{tile.label}</span>
-                <span className={styles.aiTileValue}>
-                  {tile.value} <span className={styles.aiTileEmoji}>{tile.emoji}</span>
-                </span>
-              </div>
-            ))}
+            {aiMenus.map((menu) => {
+              const selectedOption =
+                menu.options.find((option) => option.id === aiSelections[menu.id]) ??
+                menu.options[0]
+              const isOpen = openAiMenu === menu.id
+
+              return (
+                <div
+                  key={menu.id}
+                  className={`${styles.aiMenu} ${styles[`aiMenu_${menu.tone}`]} ${
+                    isOpen ? styles.aiMenuOpen : ''
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className={styles.aiMenuButton}
+                    aria-expanded={isOpen}
+                    onClick={() => setOpenAiMenu(isOpen ? null : menu.id)}
+                  >
+                    <span className={styles.aiTileLabel}>{menu.label}</span>
+                    <span className={styles.aiTileValue}>
+                      {selectedOption.label}{' '}
+                      <span className={styles.aiTileEmoji}>{selectedOption.emoji}</span>
+                    </span>
+                    <Icon name="chevron-down" size={14} className={styles.aiMenuChevron} />
+                  </button>
+
+                  {isOpen ? (
+                    <div className={styles.aiOptionsPanel}>
+                      {menu.options.map((option) => {
+                        const isSelected = option.id === selectedOption.id
+
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            className={`${styles.aiOptionChip} ${
+                              isSelected ? styles.aiOptionChipSelected : ''
+                            }`}
+                            aria-pressed={isSelected}
+                            onClick={() => handleAiSelection(menu.id, option.id)}
+                          >
+                            {isSelected ? (
+                              <Icon name="check" size={11} className={styles.aiOptionCheck} />
+                            ) : null}
+                            <span>{option.label}</span>
+                            <span className={styles.aiOptionEmoji}>{option.emoji}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
           </div>
 
           <button
