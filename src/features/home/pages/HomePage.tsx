@@ -13,6 +13,10 @@ import { Icon } from '@/shared/ui/Icon/Icon'
 import mapPreviewImage from '../../../../imagem horizontal maps.png'
 import googleMapsSaveImage from '../../../../imagem salvar google maps.png'
 import { fetchHome, type HomeDashboard } from '../services/homeService'
+import {
+  fetchTodayRecommendations,
+  type TodayRecommendation,
+} from '../services/todayRecommendationsService'
 import styles from './HomePage.module.css'
 
 const aiTiles = [
@@ -65,6 +69,11 @@ const PRICE_SYMBOL: Record<number, string> = {
 }
 
 const SUGGESTION_TAGS = ['Romântico', 'Barzinho', 'Aconchegante'] as const
+
+const DEFAULT_LOCATION = {
+  latitude: -23.55052,
+  longitude: -46.633308,
+}
 
 function isPersonalGroup(grupo: Grupo | null | undefined, perfil: Perfil | null) {
   if (!grupo) return false
@@ -128,6 +137,16 @@ function neighborhoodLabel(index: number) {
   return samples[index % samples.length]
 }
 
+function getCurrentPosition() {
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      maximumAge: 1000 * 60 * 15,
+      timeout: 10000,
+    })
+  })
+}
+
 export function HomePage() {
   const { perfil, grupo } = useAuth()
   const { open: openAddPlace, registerOnCreated } = useAddPlace()
@@ -136,6 +155,9 @@ export function HomePage() {
   const [home, setHome] = useState<HomeDashboard | null>(null)
   const [homeError, setHomeError] = useState<string | null>(null)
   const [homeLoading, setHomeLoading] = useState(true)
+  const [todaySuggestions, setTodaySuggestions] = useState<TodayRecommendation[]>([])
+  const [todaySuggestionsError, setTodaySuggestionsError] = useState<string | null>(null)
+  const [todaySuggestionsLoading, setTodaySuggestionsLoading] = useState(true)
   const [paraVocesFilter, setParaVocesFilter] = useState<ParaVocesFilter>('todos')
 
   useEffect(() => {
@@ -176,16 +198,71 @@ export function HomePage() {
     return () => registerOnCreated(null)
   }, [grupo, registerOnCreated])
 
+  useEffect(() => {
+    if (!grupo) {
+      setTodaySuggestions([])
+      setTodaySuggestionsLoading(false)
+      return
+    }
+
+    const activeGrupoId = grupo.id
+    const activePerfilId = perfil?.id
+    let cancelled = false
+    setTodaySuggestionsLoading(true)
+    setTodaySuggestionsError(null)
+
+    async function loadTodaySuggestions() {
+      let coords = DEFAULT_LOCATION
+
+      if ('geolocation' in navigator) {
+        try {
+          const position = await getCurrentPosition()
+          coords = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }
+        } catch {
+          coords = DEFAULT_LOCATION
+        }
+      }
+
+      const places = await fetchTodayRecommendations({
+        grupo_id: activeGrupoId,
+        perfil_id: activePerfilId,
+        latitude: coords.latitude,
+        limit: 3,
+        longitude: coords.longitude,
+        mood: 'descoberta leve para hoje',
+        radius_meters: 2500,
+      })
+
+      if (cancelled) return
+      setTodaySuggestions(places)
+    }
+
+    loadTodaySuggestions()
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setTodaySuggestions([])
+        setTodaySuggestionsError(
+          getErrorMessage(err, 'Nao foi possivel carregar sugestoes da IA agora.'),
+        )
+      })
+      .finally(() => {
+        if (cancelled) return
+        setTodaySuggestionsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [grupo, perfil])
+
   function handleDecide() {
     navigate('/chat')
   }
 
-  const allPlaces = useMemo(() => {
-    if (!home) return []
-    return uniquePlaces(home.latest_places, home.top_favorites, home.want_to_go, home.want_to_return)
-  }, [home])
-
-  const suggestions = useMemo(() => allPlaces.slice(0, 3), [allPlaces])
+  const suggestions = todaySuggestions
 
   const paraVocesPlaces = useMemo(() => {
     if (!home) return []
@@ -282,7 +359,7 @@ export function HomePage() {
           </header>
 
           <div className={styles.suggestRow}>
-            {homeLoading
+            {todaySuggestionsLoading
               ? Array.from({ length: 3 }).map((_, idx) => (
                   <article key={`sk-${idx}`} className={`${styles.suggestCard} ${styles.skeletonCard}`} aria-hidden="true">
                     <span className={styles.suggestThumb} />
@@ -292,7 +369,13 @@ export function HomePage() {
                     </div>
                   </article>
                 ))
-              : suggestions.length === 0
+              : todaySuggestionsError
+                ? (
+                    <p className={styles.suggestEmpty}>
+                      {todaySuggestionsError}
+                    </p>
+                  )
+                : suggestions.length === 0
                 ? (
                     <button
                       type="button"
@@ -331,7 +414,7 @@ export function HomePage() {
           <header className={styles.paraVocesHeader}>
             <div>
               <h2 className={styles.sectionTitle}>
-                Para vocês <span className={styles.titleHeart} aria-hidden="true">💗</span>
+                Para vocês <span className={styles.titleHeart} aria-hidden="true"></span>
               </h2>
               <p className={styles.sectionMuted}>
                 Lugares que combinam com o perfil de vocês
