@@ -77,6 +77,10 @@ export function lugarToPlace(lugar: LugarResponse | Record<string, unknown>): Pl
     : Array.isArray(raw.photos)
       ? raw.photos
       : []
+  const normalizedPhotos = photos.map((photo) =>
+    normalizePlacePhoto(photo as LugarFotoResponse | PlacePhoto),
+  )
+  const coverPhotoUrl = normalizedPhotos.find((photo) => photo.capa)?.url
 
   return {
     id: String(raw.id),
@@ -90,13 +94,13 @@ export function lugarToPlace(lugar: LugarResponse | Record<string, unknown>): Pl
     notes: stringOrNull(raw.notas, raw.notes),
     status: statusValue(raw.status),
     is_favorite: booleanValue(raw.favorito, booleanValue(raw.is_favorite)),
-    image_url: stringOrNull(raw.imagem_capa, raw.image_url, raw.photo_uri),
+    image_url: coverPhotoUrl ?? stringOrNull(raw.imagem_capa, raw.image_url, raw.photo_uri),
     rating: numberOrNull(raw.rating, extra.rating),
     user_rating_count: numberOrNull(raw.user_rating_count, extra.user_rating_count),
     added_by: stringOrNull(raw.adicionado_por, raw.added_by),
     created_at: stringOrNull(raw.criado_em, raw.created_at),
     updated_at: stringOrNull(raw.atualizado_em, raw.updated_at),
-    photos: photos.map((photo) => normalizePlacePhoto(photo as LugarFotoResponse | PlacePhoto)),
+    photos: normalizedPhotos,
   }
 }
 

@@ -11,6 +11,8 @@ type AddPlaceModalProps = {
   initialPlaceId?: string
   initialQuery?: string
   initialMode?: 'google' | 'manual'
+  titleOverride?: string
+  subtitleOverride?: string
 }
 
 export function AddPlaceModal({
@@ -19,6 +21,8 @@ export function AddPlaceModal({
   initialQuery = '',
   onClose,
   onCreated,
+  subtitleOverride,
+  titleOverride,
 }: AddPlaceModalProps) {
   const [mode, setMode] = useState<'google' | 'manual'>(initialMode)
   const [hasSelectedGooglePlace, setHasSelectedGooglePlace] = useState(Boolean(initialPlaceId))
@@ -57,18 +61,20 @@ export function AddPlaceModal({
             </span>
             <div>
               <h2 id="add-place-title" className={styles.modalTitle}>
-                {isConfirmingGooglePlace
-                  ? 'É esse lugar?'
-                  : mode === 'google'
-                    ? 'Encontrar restaurante'
-                    : 'Adicionar lugar'}
+                {titleOverride ??
+                  (isConfirmingGooglePlace
+                    ? 'É esse lugar?'
+                    : mode === 'google'
+                      ? 'Encontrar restaurante'
+                      : 'Adicionar lugar')}
               </h2>
               <p className={styles.modalSubtitle}>
-                {isConfirmingGooglePlace
-                  ? 'Confira os detalhes antes de adicionar ao casal.'
-                  : mode === 'google'
-                    ? 'Busque no Google Maps e confirme antes de salvar.'
-                    : 'Cadastre manualmente quando o Google Maps não encontrar.'}
+                {subtitleOverride ??
+                  (isConfirmingGooglePlace
+                    ? 'Confira os detalhes antes de adicionar ao casal.'
+                    : mode === 'google'
+                      ? 'Busque no Google Maps e confirme antes de salvar.'
+                      : 'Cadastre manualmente quando o Google Maps não encontrar.')}
               </p>
             </div>
           </div>

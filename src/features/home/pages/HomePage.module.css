@@ -738,6 +738,18 @@
   font-weight: 600;
 }
 
+.aiCardError {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.12);
+  border-radius: 12px;
+  color: var(--color-danger);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: -0.2rem 0 0;
+  padding: 0.58rem 0.7rem;
+}
+
 /* ============================================================
    Discover grid (map + weather + google maps)
    ============================================================ */

@@ -14,6 +14,8 @@ type OpenOptions = {
   initialQuery?: string
   initialMode?: 'google' | 'manual'
   initialPlaceId?: string
+  titleOverride?: string
+  subtitleOverride?: string
 }
 
 type AddPlaceContextValue = {
@@ -69,6 +71,8 @@ export function AddPlaceProvider({ children }: ProviderProps) {
           initialQuery={options.initialQuery ?? ''}
           onClose={close}
           onCreated={handleCreated}
+          subtitleOverride={options.subtitleOverride}
+          titleOverride={options.titleOverride}
         />
       ) : null}
     </AddPlaceContext.Provider>

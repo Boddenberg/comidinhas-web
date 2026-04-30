@@ -8,7 +8,7 @@ import {
   getGooglePlaceDetails,
   saveGooglePlace,
 } from '../services/googleMapsService'
-import { getPlace, uploadPlacePhoto } from '../services/placesService'
+import { getPlace, setPlacePhotoCover, uploadPlacePhoto } from '../services/placesService'
 import {
   type GoogleAutocompleteSuggestion,
   type GooglePlaceDetail,
@@ -30,6 +30,7 @@ type GalleryPhoto = {
   label: string
   source: 'backend' | 'local'
   url: string
+  backendIndex?: number
   coverHint?: boolean
   file?: File
 }
@@ -47,10 +48,16 @@ function getPhotoId(photo: GooglePlacePhoto | string, index: number, url: string
 function normalizePhotos(detail: GooglePlaceDetail, localPhotos: GalleryPhoto[]) {
   const seen = new Set<string>()
   const photos: GalleryPhoto[] = []
+  let backendIndex = 0
 
   function addPhoto(photo: GalleryPhoto) {
     if (seen.has(photo.url)) return
     seen.add(photo.url)
+    if (photo.source === 'backend') {
+      photos.push({ ...photo, backendIndex })
+      backendIndex += 1
+      return
+    }
     photos.push(photo)
   }
 
@@ -80,6 +87,30 @@ function normalizePhotos(detail: GooglePlaceDetail, localPhotos: GalleryPhoto[])
   localPhotos.forEach(addPhoto)
 
   return photos
+}
+
+function comparablePhotoUrl(url: string) {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.origin}${parsed.pathname}`
+  } catch {
+    return url.split('?')[0].split('#')[0]
+  }
+}
+
+function resolvePersistedCoverPhoto(coverPhoto: GalleryPhoto | undefined, place: Place) {
+  if (!coverPhoto) return null
+
+  const persistedPhotos = place.photos.filter((photo) => photo.url)
+  const comparableCoverUrl = comparablePhotoUrl(coverPhoto.url)
+
+  return (
+    persistedPhotos.find((photo) => photo.id === coverPhoto.id) ??
+    persistedPhotos.find((photo) => photo.url === coverPhoto.url) ??
+    persistedPhotos.find((photo) => comparablePhotoUrl(photo.url) === comparableCoverUrl) ??
+    (coverPhoto.backendIndex !== undefined ? persistedPhotos[coverPhoto.backendIndex] : undefined) ??
+    null
+  )
 }
 
 function formatCategory(detail: GooglePlaceDetail) {
@@ -340,16 +371,24 @@ export function GoogleSearchPanel({
         added_by_profile_id: perfil?.id,
       })
       const localUploads = gallery.filter((photo) => photo.source === 'local' && photo.file)
+
       if (localUploads.length > 0) {
         await Promise.all(
           localUploads.map((photo) =>
             uploadPlacePhoto(saved.id, photo.file as File, photo.id === coverPhoto?.id),
           ),
         )
-        onSaved(await getPlace(saved.id))
-        return
       }
-      onSaved(saved)
+
+      let hydratedPlace = await getPlace(saved.id)
+      const selectedPersistedCover = resolvePersistedCoverPhoto(coverPhoto, hydratedPlace)
+
+      if (selectedPersistedCover && !selectedPersistedCover.capa) {
+        await setPlacePhotoCover(saved.id, selectedPersistedCover.id)
+        hydratedPlace = await getPlace(saved.id)
+      }
+
+      onSaved(hydratedPlace)
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err, 'Não foi possível salvar agora.'))
     } finally {
