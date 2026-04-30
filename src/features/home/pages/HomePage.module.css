@@ -103,7 +103,7 @@
   overflow: hidden;
   padding: 2rem 2.9rem;
   position: relative;
-  width: calc(100% + 34rem);
+  width: calc(76.5% + 34rem);
 }
 
 .hero::before {
@@ -469,7 +469,7 @@
   gap: 0.85rem;
   justify-content: space-between;
   max-width: 21.5rem;
-  min-height: 19.5rem;
+  min-height: 22.15rem;
   padding: 1.05rem 1.1rem 1.15rem;
   width: 100%;
 }
@@ -521,8 +521,16 @@
   background: var(--color-tile-blue-bg);
 }
 
-.aiTile_green {
-  background: var(--color-tile-green-bg);
+.aiTile_place {
+  background: var(--color-tile-place-bg);
+}
+
+.aiTile_budget {
+  background: var(--color-tile-budget-bg);
+}
+
+.aiTile_distance {
+  background: var(--color-tile-distance-bg);
 }
 
 .aiTileLabel {
@@ -553,8 +561,16 @@
   color: var(--color-tile-blue-text);
 }
 
-.aiTile_green .aiTileValue {
-  color: var(--color-tile-green-text);
+.aiTile_place .aiTileValue {
+  color: var(--color-tile-place-text);
+}
+
+.aiTile_budget .aiTileValue {
+  color: var(--color-tile-budget-text);
+}
+
+.aiTile_distance .aiTileValue {
+  color: var(--color-tile-distance-text);
 }
 
 .aiTileEmoji {
@@ -610,7 +626,7 @@
   gap: 0.75rem;
   grid-template-columns: minmax(0, 1.35fr) minmax(10.5rem, 1fr);
   grid-template-rows: 10rem 7.35rem;
-  margin-top: 2.45rem;
+  margin-top: 0rem;
 }
 
 .mapCard {
@@ -736,10 +752,10 @@
   color: var(--color-primary);
 }
 
-/* Weather card (night theme) */
+/* Weather card */
 
 .weatherCard {
-  background: linear-gradient(135deg, #1f3370 0%, #19265a 100%);
+  background: #172554;
   border-radius: 18px;
   color: #ffffff;
   display: flex;
@@ -753,68 +769,25 @@
 }
 
 .weatherCard::before {
-  background: radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.12), transparent 55%);
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.62) 0%, rgba(15, 23, 42, 0.24) 70%),
+    linear-gradient(0deg, rgba(15, 23, 42, 0.26), transparent 58%);
   content: '';
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
-  z-index: 0;
-}
-
-.weatherStars {
   inset: 0;
   pointer-events: none;
   position: absolute;
   z-index: 1;
 }
 
-.weatherStarA,
-.weatherStarB,
-.weatherStarC {
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 999px;
-  display: block;
+.weatherBackdrop {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  object-position: 100% center;
   position: absolute;
-}
-
-.weatherStarA {
-  height: 3px;
-  left: 18%;
-  top: 22%;
-  width: 3px;
-}
-
-.weatherStarB {
-  height: 4px;
-  left: 38%;
-  top: 12%;
-  width: 4px;
-}
-
-.weatherStarC {
-  height: 2px;
-  left: 60%;
-  top: 30%;
-  width: 2px;
-}
-
-.weatherMoon {
-  position: absolute;
-  right: 0.7rem;
-  top: 0.7rem;
-  z-index: 2;
-}
-
-.moonPlaceholder {
-  align-items: center;
-  background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
-  border-radius: 999px;
-  box-shadow: 0 0 14px rgba(251, 191, 36, 0.4);
-  color: #92660a;
-  display: inline-flex;
-  height: 2.55rem;
-  justify-content: center;
-  width: 2.55rem;
+  transform: scale(1.3);
+  width: 100%;
+  z-index: 0;
 }
 
 .weatherLabel {
@@ -822,6 +795,7 @@
   font-size: 0.73rem;
   font-weight: 500;
   position: relative;
+  text-shadow: 0 1px 8px rgba(15, 23, 42, 0.45);
   z-index: 2;
 }
 
@@ -834,6 +808,7 @@
   line-height: 1.05;
   margin-top: 0.45rem;
   position: relative;
+  text-shadow: 0 2px 10px rgba(15, 23, 42, 0.45);
   z-index: 2;
 }
 
@@ -843,6 +818,7 @@
   line-height: 1.35;
   margin-top: 0.2rem;
   position: relative;
+  text-shadow: 0 1px 8px rgba(15, 23, 42, 0.45);
   z-index: 2;
 }
 
@@ -890,6 +866,7 @@
 .googleMapsIcon img {
   height: 100%;
   object-fit: cover;
+  object-position: 100% center;
   width: 100%;
 }
 

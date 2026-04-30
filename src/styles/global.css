@@ -31,14 +31,18 @@
   --color-hero: #1e3a8a;
   --color-hero-deep: #1e2a6e;
 
-  --color-tile-purple-bg: #ece7fd;
-  --color-tile-purple-text: #6d4ed7;
-  --color-tile-pink-bg: #fde0d4;
-  --color-tile-pink-text: #d04545;
-  --color-tile-blue-bg: #dceffd;
-  --color-tile-blue-text: #2766c8;
-  --color-tile-green-bg: #d8f0d8;
-  --color-tile-green-text: #2c9243;
+  --color-tile-purple-bg: #efe7ff;
+  --color-tile-purple-text: #6d3fe4;
+  --color-tile-pink-bg: #ffe5d8;
+  --color-tile-pink-text: #e4573f;
+  --color-tile-place-bg: #ddf7e6;
+  --color-tile-place-text: #199a5a;
+  --color-tile-blue-bg: #ddf1ff;
+  --color-tile-blue-text: #2377d6;
+  --color-tile-budget-bg: #e8f6d8;
+  --color-tile-budget-text: #5c9b22;
+  --color-tile-distance-bg: #f1e7ff;
+  --color-tile-distance-text: #7b4de3;
 
   --color-tip-bg: #ece6fd;
   --color-tip-text: #5b3fc4;

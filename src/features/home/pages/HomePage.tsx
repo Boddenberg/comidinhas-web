@@ -10,6 +10,8 @@ import {
 } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
+import weatherDayImage from '../../../../dia.png'
+import weatherNightImage from '../../../../noite.png'
 import mapPreviewImage from '../../../../imagem horizontal maps.png'
 import googleMapsSaveImage from '../../../../imagem salvar google maps.png'
 import { fetchHome, type HomeDashboard } from '../services/homeService'
@@ -35,6 +37,13 @@ const aiTiles = [
     tone: 'pink',
   },
   {
+    id: 'lugar',
+    label: 'Lugar',
+    value: 'Qualquer',
+    emoji: '📍',
+    tone: 'place',
+  },
+  {
     id: 'clima',
     label: 'Clima',
     value: 'Fresco',
@@ -46,7 +55,14 @@ const aiTiles = [
     label: 'Orçamento',
     value: 'Até R$120',
     emoji: '💵',
-    tone: 'green',
+    tone: 'budget',
+  },
+  {
+    id: 'distancia',
+    label: 'Distância',
+    value: 'Pertinho',
+    emoji: '🚶',
+    tone: 'distance',
   },
 ] as const
 
@@ -73,6 +89,11 @@ const SUGGESTION_TAGS = ['Romântico', 'Barzinho', 'Aconchegante'] as const
 const DEFAULT_LOCATION = {
   latitude: -23.55052,
   longitude: -46.633308,
+}
+
+function getIsDaytime() {
+  const hour = new Date().getHours()
+  return hour >= 6 && hour < 18
 }
 
 function isPersonalGroup(grupo: Grupo | null | undefined, perfil: Perfil | null) {
@@ -159,6 +180,15 @@ export function HomePage() {
   const [todaySuggestionsError, setTodaySuggestionsError] = useState<string | null>(null)
   const [todaySuggestionsLoading, setTodaySuggestionsLoading] = useState(true)
   const [paraVocesFilter, setParaVocesFilter] = useState<ParaVocesFilter>('todos')
+  const [isDaytime, setIsDaytime] = useState(getIsDaytime)
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setIsDaytime(getIsDaytime())
+    }, 1000 * 60)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
 
   useEffect(() => {
     if (!grupo) {
@@ -542,17 +572,12 @@ export function HomePage() {
           </section>
 
           <section className={styles.weatherCard}>
-            <span className={styles.weatherStars} aria-hidden="true">
-              <span className={styles.weatherStarA} />
-              <span className={styles.weatherStarB} />
-              <span className={styles.weatherStarC} />
-            </span>
-            <span className={styles.weatherMoon} aria-hidden="true">
-              {/* placeholder for moon image */}
-              <div className={styles.moonPlaceholder}>
-                <Icon name="moon" size={32} />
-              </div>
-            </span>
+            <img
+              alt=""
+              aria-hidden="true"
+              className={styles.weatherBackdrop}
+              src={isDaytime ? weatherDayImage : weatherNightImage}
+            />
             <p className={styles.weatherLabel}>Clima agora em São Paulo</p>
             <strong className={styles.weatherTemp}>23°C</strong>
             <p className={styles.weatherDescription}>Céu limpo com<br />vento leve</p>
