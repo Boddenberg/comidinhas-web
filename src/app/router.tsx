@@ -3,6 +3,7 @@ import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { ProfilePage } from '@/features/auth/pages/ProfilePage'
 import { SignupPage } from '@/features/auth/pages/SignupPage'
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
+import { AiGuideImportPage } from '@/features/ai-guides/pages/AiGuideImportPage'
 import { ChatPage } from '@/features/chat/pages/ChatPage'
 import { GroupsHubPage } from '@/features/groups/pages/GroupsHubPage'
 import { JoinGroupPage } from '@/features/groups/pages/JoinGroupPage'
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
           { path: 'grupos', element: <GroupsHubPage /> },
           { path: 'entrar', element: <JoinGroupPage /> },
           { path: 'guias', element: <GuidesPage /> },
+          { path: 'guias/ia', element: <AiGuideImportPage /> },
           { path: 'lugares', element: <PlacesListPage /> },
           { path: 'lugares/novo', element: <Navigate replace to="/" /> },
           { path: 'restaurantes-proximos', element: <NearbyRestaurantsPage /> },

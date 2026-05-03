@@ -17,6 +17,7 @@ const navigation = [
   { icon: 'users', label: 'Grupos', to: '/grupos' },
   { icon: 'pin', label: 'Lugares', to: '/lugares' },
   { icon: 'bookmark', label: 'Guias', to: '/guias' },
+  { icon: 'robot', label: 'Guia IA', to: '/guias/ia', badge: 'novo' },
   { icon: 'sparkles', label: 'IA Decide', to: '/chat', badge: 'novo' },
   { icon: 'search', label: 'Explorar', to: '/explorar' },
   { icon: 'user', label: 'Nosso perfil', to: '/perfil' },
