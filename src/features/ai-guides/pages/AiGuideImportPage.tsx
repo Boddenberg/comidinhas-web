@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '@/features/auth/AuthContext'
+import { resolveGroupBackgroundUrl } from '@/features/groups/lib/groupBackgrounds'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
-import { Button } from '@/shared/ui/Button/Button'
 import { Icon } from '@/shared/ui/Icon/Icon'
-import { PageHeader } from '@/shared/ui/PageHeader/PageHeader'
 import {
   bulkUpdateItens,
   cancelImportJob,
@@ -61,14 +60,46 @@ const STATUS_LABELS: Record<StatusMatching, string> = {
   nao_encontrado: 'Não encontrado',
 }
 
-const SAMPLE_TEXT = `Os 10 melhores restaurantes de Vila Madalena
-Por Folha SP — 2024
+const SAMPLE_TEXT = `10 japoneses imperdíveis em São Paulo:
+1. Kan Suke – Itaim Bibi
+2. Tan Tan Noodle Bar – Vila Mariana
+3. Sushi Hachi – Jardins
+4. Kinoshita – Higienópolis
+5. Nakka – Pinheiros
+6. Azumi – Moema
+7. Shin-Zushi – Itaim
+8. Sushi Yassu – Paraíso
+9. Temaki Ya – Brooklin
+10. Komeki – Liberdade
 
-1. Z Deli — Sanduíches autorais e clima de bar de bairro. R. Aspicuelta.
-2. Tan Tan Noodle Bar — Lámen criativo e drinks asiáticos. R. Fradique Coutinho.
-3. A Casa do Porco — Cozinha brasileira contemporânea (anexo Vila Mada). Centro/Vila.
-4. Patuá — Pratos da Bahia em casa pequena. Beco do Batman.
-5. Ferro e Farinha — Pizza romana com fila boa. Mooca/Vila.`
+... e mais alguns menções especiais que valem a visita!`
+
+const PIPELINE_STEPS = [
+  { id: 'sanitiza', label: 'Sanitiza', icon: 'sparkles', tone: 'purple' },
+  { id: 'classifica', label: 'Classifica', icon: 'tag', tone: 'pink' },
+  { id: 'extrai', label: 'Extrai\nrestaurantes', icon: 'list', tone: 'place' },
+  { id: 'cruza', label: 'Cruza com\no grupo', icon: 'users', tone: 'blue' },
+  { id: 'enriquece', label: 'Enriquece com\nGoogle Places', icon: 'pin', tone: 'budget' },
+  { id: 'sugere', label: 'Monta\nsugestões', icon: 'star', tone: 'distance' },
+  { id: 'cria', label: 'Cria\no guia', icon: 'flag', tone: 'tip' },
+] as const
+
+const TONE_TO_VAR: Record<string, { bg: string; fg: string }> = {
+  purple: { bg: 'var(--color-tile-purple-bg)', fg: 'var(--color-tile-purple-text)' },
+  pink: { bg: 'var(--color-tile-pink-bg)', fg: 'var(--color-tile-pink-text)' },
+  place: { bg: 'var(--color-tile-place-bg)', fg: 'var(--color-tile-place-text)' },
+  blue: { bg: 'var(--color-tile-blue-bg)', fg: 'var(--color-tile-blue-text)' },
+  budget: { bg: 'var(--color-tile-budget-bg)', fg: 'var(--color-tile-budget-text)' },
+  distance: { bg: 'var(--color-tile-distance-bg)', fg: 'var(--color-tile-distance-text)' },
+  tip: { bg: 'var(--color-tip-bg)', fg: 'var(--color-tip-text)' },
+}
+
+const CHAR_LIMIT = 8000
+const URL_PATTERN = /^https?:\/\/\S+/i
+
+type InputMode = 'texto' | 'link'
+type FilterId = 'todos' | 'pendentes' | 'confirmados' | 'duvidas'
+type ItemActionState = Record<string, 'confirmando' | 'descartando' | undefined>
 
 function formatPercent(value: number) {
   return `${Math.max(0, Math.min(100, Math.round(value)))}%`
@@ -96,14 +127,12 @@ function getStatusTone(status: StatusMatching) {
   return STATUS_TONE[status] ?? 'info'
 }
 
-type ItemActionState = Record<string, 'confirmando' | 'descartando' | undefined>
-
 export function AiGuideImportPage() {
   const { grupo, perfil } = useAuth()
 
+  const [mode, setMode] = useState<InputMode>('texto')
   const [texto, setTexto] = useState('')
-  const [titulo, setTitulo] = useState('')
-  const [urlOrigem, setUrlOrigem] = useState('')
+  const [link, setLink] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
   const [job, setJob] = useState<JobResponse | null>(null)
@@ -112,7 +141,7 @@ export function AiGuideImportPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actionState, setActionState] = useState<ItemActionState>({})
-  const [filter, setFilter] = useState<'todos' | 'pendentes' | 'confirmados' | 'duvidas'>('todos')
+  const [filter, setFilter] = useState<FilterId>('todos')
 
   const pollAbortRef = useRef<AbortController | null>(null)
 
@@ -139,49 +168,62 @@ export function AiGuideImportPage() {
     }
   }, [])
 
-  const trackJob = useCallback(async (initial: JobResponse) => {
-    pollAbortRef.current?.abort()
-    const controller = new AbortController()
-    pollAbortRef.current = controller
-    setJob(initial)
-    setGuide(null)
+  const trackJob = useCallback(
+    async (initial: JobResponse) => {
+      pollAbortRef.current?.abort()
+      const controller = new AbortController()
+      pollAbortRef.current = controller
+      setJob(initial)
+      setGuide(null)
 
-    try {
-      const finalJob = await pollImportJob(initial.id, {
-        intervalMs: 2500,
-        signal: controller.signal,
-        onUpdate: (next) => setJob(next),
-      })
+      try {
+        const finalJob = await pollImportJob(initial.id, {
+          intervalMs: 2500,
+          signal: controller.signal,
+          onUpdate: (next) => setJob(next),
+        })
 
-      setJob(finalJob)
+        setJob(finalJob)
 
-      if (isJobSuccess(finalJob.status) && finalJob.guia_id) {
-        const guia = await getAiGuide(finalJob.guia_id)
-        setGuide(guia)
+        if (isJobSuccess(finalJob.status) && finalJob.guia_id) {
+          const guia = await getAiGuide(finalJob.guia_id)
+          setGuide(guia)
+        }
+      } catch (err) {
+        if ((err as DOMException)?.name !== 'AbortError') {
+          setError(getErrorMessage(err, 'Não foi possível acompanhar a importação.'))
+        }
+      } finally {
+        void loadHistory()
       }
-    } catch (err) {
-      if ((err as DOMException)?.name !== 'AbortError') {
-        setError(getErrorMessage(err, 'Não foi possível acompanhar a importação.'))
-      }
-    } finally {
-      void loadHistory()
-    }
-  }, [loadHistory])
+    },
+    [loadHistory],
+  )
+
+  const isRunning = job ? !isJobTerminal(job.status) : false
+  const success = job ? isJobSuccess(job.status) : false
+
+  const trimmedTexto = texto.trim()
+  const trimmedLink = link.trim()
+  const linkLooksValid = URL_PATTERN.test(trimmedLink)
+  const canSubmit = mode === 'texto' ? trimmedTexto.length >= 10 : linkLooksValid
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!grupo || texto.trim().length < 10) return
+    if (!grupo || !canSubmit || submitting || isRunning) return
 
     setSubmitting(true)
     setError(null)
 
     try {
+      const payloadTexto = mode === 'texto' ? trimmedTexto : trimmedLink
+      const payloadUrl = mode === 'link' ? trimmedLink : undefined
+
       const created = await createImportJob({
         grupo_id: grupo.id,
         perfil_id: perfil?.id,
-        texto: texto.trim(),
-        titulo_sugerido: titulo.trim() || undefined,
-        url_origem: urlOrigem.trim() || undefined,
+        texto: payloadTexto,
+        url_origem: payloadUrl,
       })
       void trackJob(created)
     } catch (err) {
@@ -265,12 +307,15 @@ export function AiGuideImportPage() {
   }
 
   function handleUseSample() {
+    setMode('texto')
     setTexto(SAMPLE_TEXT)
-    setTitulo('Vila Mada para o casal')
+    setLink('')
   }
 
-  const isRunning = job ? !isJobTerminal(job.status) : false
-  const success = job ? isJobSuccess(job.status) : false
+  function handleClear() {
+    setTexto('')
+    setLink('')
+  }
 
   const suggestionCards = useMemo(() => {
     if (!guide) return []
@@ -317,152 +362,215 @@ export function AiGuideImportPage() {
   if (!grupo) {
     return (
       <section className={styles.page}>
-        <PageHeader
-          eyebrow="Guia IA · Novo"
-          title="Selecione um grupo para importar guias."
-          description="A IA precisa saber em qual perfil salvar o guia, os lugares e as sugestões."
-        />
+        <div className={`surfaceCard ${styles.emptyState}`}>
+          <div className={styles.emptyIcon}>
+            <Icon name="users" size={20} />
+          </div>
+          <h1>Selecione um grupo</h1>
+          <p>A IA precisa saber em qual perfil salvar o guia, os lugares e as sugestões.</p>
+        </div>
       </section>
     )
   }
 
+  const groupPhotoUrl = grupo.foto_url ? resolveGroupBackgroundUrl(grupo.foto_url) : null
+
   return (
     <section className={styles.page}>
-      <PageHeader
-        eyebrow="Guia IA · Novo"
-        title="Cole um texto, ganhe um guia gastronômico."
-        description="Mande uma matéria, lista do Insta ou Google Doc. A IA extrai os restaurantes, cruza com o que o grupo já conhece e devolve um guia pronto pra usar no IA Decide."
-        action={
-          <button
-            className={styles.headerAction}
-            onClick={handleUseSample}
-            type="button"
-            disabled={submitting || isRunning}
-          >
-            <Icon name="sparkles" size={16} />
-            Usar texto de exemplo
-          </button>
-        }
-      />
-
       {error ? <p className={styles.error}>{error}</p> : null}
 
-      <div className={styles.heroBand}>
-        <div className={styles.heroCopy}>
-          <span className={styles.heroEyebrow}>
-            <Icon name="robot" size={14} /> novo nesta versão
-          </span>
-          <h2 className={styles.heroTitle}>
-            Cole o link da matéria, a IA monta o guia <span className={styles.heroAccent}>em segundos</span>.
-          </h2>
-          <p className={styles.heroSubtitle}>
-            Sanitização → extração dos restaurantes → match com seus lugares → busca no Google Places →
-            sugestões personalizadas pro grupo de {grupo.nome}.
-          </p>
-        </div>
-        <ul className={styles.heroPipeline}>
-          <li>
-            <span>1</span>
-            Limpa e classifica
-          </li>
-          <li>
-            <span>2</span>
-            Extrai restaurantes
-          </li>
-          <li>
-            <span>3</span>
-            Cruza com seus lugares
-          </li>
-          <li>
-            <span>4</span>
-            Sugere para o grupo
-          </li>
-        </ul>
-      </div>
+      <article className={`surfaceCard ${styles.importCard}`}>
+        <header className={styles.importHero}>
+          <div className={styles.heroBadge}>
+            <Icon name="sparkles" size={26} />
+          </div>
+          <div className={styles.heroCopy}>
+            <h1>Importar guia com IA</h1>
+            <p>
+              Cole um texto, matéria, lista, post ou link e a IA transforma isso em um guia para o
+              grupo.
+            </p>
+          </div>
+          <div className={styles.heroMascot} aria-hidden="true">
+            <span className={styles.mascotEmoji}>🤖</span>
+            <span className={styles.mascotBowl}>🍜</span>
+            <span className={styles.mascotSparkleA}>✨</span>
+            <span className={styles.mascotSparkleB}>✨</span>
+            <span className={styles.mascotSparkleC}>✨</span>
+            <span className={styles.mascotChecklist}>
+              <span>✓</span>
+              <span>✓</span>
+              <span>✓</span>
+            </span>
+          </div>
+        </header>
 
-      <div className={styles.layout}>
-        <form className={`surfaceCard ${styles.form}`} onSubmit={handleSubmit}>
-          <div className={styles.formHead}>
-            <h2>Importar texto</h2>
-            <p>Funciona com matérias, listas do Instagram ou anotações coladas direto.</p>
+        <form className={styles.importForm} onSubmit={handleSubmit}>
+          <div className={styles.fieldBlock}>
+            <span className={styles.fieldLabel}>Grupo</span>
+            <div className={styles.groupSelect}>
+              <span className={styles.groupAvatar} aria-hidden="true">
+                {groupPhotoUrl ? (
+                  <img src={groupPhotoUrl} alt="" />
+                ) : (
+                  <Icon name="users" size={14} />
+                )}
+              </span>
+              <span className={styles.groupName}>{grupo.nome}</span>
+              <Icon name="chevron-down" size={16} />
+            </div>
           </div>
 
-          <label className="formField">
-            <span className="formLabel">Texto do guia</span>
-            <textarea
-              className={`textArea ${styles.textArea}`}
+          <div className={styles.modeTabs} role="tablist" aria-label="Origem do conteúdo">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'texto'}
+              className={styles.modeTab}
+              data-active={mode === 'texto'}
+              onClick={() => setMode('texto')}
               disabled={submitting || isRunning}
-              minLength={10}
-              maxLength={400_000}
-              onChange={(event) => setTexto(event.target.value)}
-              placeholder="Cole aqui o texto da matéria, a lista do amigo ou o que você salvou."
-              required
-              rows={10}
-              value={texto}
-            />
-            <small className={styles.fieldHint}>{texto.length.toLocaleString('pt-BR')} / 400.000 caracteres</small>
+            >
+              <Icon name="pencil" size={15} />
+              Colar texto
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'link'}
+              className={styles.modeTab}
+              data-active={mode === 'link'}
+              onClick={() => setMode('link')}
+              disabled={submitting || isRunning}
+            >
+              <Icon name="link" size={15} />
+              Colar link
+            </button>
+          </div>
+
+          {mode === 'texto' ? (
+            <label className={styles.fieldBlock}>
+              <span className={styles.fieldLabel}>Cole aqui o texto, lista ou post</span>
+              <div className={styles.textAreaWrap}>
+                <textarea
+                  className={styles.textArea}
+                  disabled={submitting || isRunning}
+                  maxLength={CHAR_LIMIT}
+                  minLength={10}
+                  onChange={(event) => setTexto(event.target.value)}
+                  placeholder={SAMPLE_TEXT}
+                  rows={11}
+                  value={texto}
+                />
+                <span className={styles.charCounter}>
+                  {texto.length.toLocaleString('pt-BR')} / {CHAR_LIMIT.toLocaleString('pt-BR')}
+                </span>
+              </div>
+            </label>
+          ) : null}
+
+          <div className={styles.divider}>
+            <span>Ou</span>
+          </div>
+
+          <label className={styles.fieldBlock}>
+            <span className={styles.fieldLabel}>Ou cole um link</span>
+            <div className={styles.linkInputWrap}>
+              <Icon name="link" size={16} />
+              <input
+                className={styles.linkInput}
+                disabled={submitting || isRunning}
+                inputMode="url"
+                maxLength={1000}
+                onChange={(event) => setLink(event.target.value)}
+                onFocus={() => setMode('link')}
+                placeholder="https://..."
+                type="url"
+                value={link}
+              />
+            </div>
           </label>
 
-          <div className={styles.formGrid}>
-            <label className="formField">
-              <span className="formLabel">Título sugerido</span>
-              <input
-                className="textInput"
-                disabled={submitting || isRunning}
-                maxLength={200}
-                onChange={(event) => setTitulo(event.target.value)}
-                placeholder="Vila Madalena para o casal"
-                type="text"
-                value={titulo}
-              />
-            </label>
-            <label className="formField">
-              <span className="formLabel">URL de origem</span>
-              <input
-                className="textInput"
-                disabled={submitting || isRunning}
-                maxLength={1000}
-                onChange={(event) => setUrlOrigem(event.target.value)}
-                placeholder="https://folha.uol.com.br/..."
-                type="url"
-                value={urlOrigem}
-              />
-            </label>
-          </div>
+          <ul className={styles.pipeline} aria-hidden="true">
+            {PIPELINE_STEPS.map((step, index) => {
+              const tone = TONE_TO_VAR[step.tone] ?? TONE_TO_VAR.purple
+              return (
+                <li key={step.id} className={styles.pipelineItem}>
+                  <span
+                    className={styles.pipelineIcon}
+                    style={{ background: tone.bg, color: tone.fg }}
+                  >
+                    <Icon name={step.icon} size={20} />
+                  </span>
+                  <span className={styles.pipelineLabel}>
+                    {step.label.split('\n').map((line, lineIndex) => (
+                      <span key={lineIndex}>{line}</span>
+                    ))}
+                  </span>
+                  {index < PIPELINE_STEPS.length - 1 ? (
+                    <span className={styles.pipelineConnector} aria-hidden="true">
+                      <Icon name="arrow-right" size={14} />
+                    </span>
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
 
-          <div className={styles.formActions}>
-            <Button
-              disabled={submitting || isRunning || texto.trim().length < 10}
-              type="submit"
-              variant="primary"
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={!canSubmit || submitting || isRunning}
+          >
+            <Icon name="sparkles" size={18} />
+            {submitting ? 'Enviando...' : isRunning ? 'Importando...' : 'Criar guia com IA'}
+          </button>
+
+          <div className={styles.secondaryActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={handleUseSample}
+              disabled={submitting || isRunning}
             >
-              {submitting ? 'Enviando...' : isRunning ? 'Importando...' : 'Gerar guia com IA'}
-            </Button>
+              <Icon name="book-open" size={15} />
+              Usar exemplo
+            </button>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={handleClear}
+              disabled={submitting || isRunning || (!texto && !link)}
+            >
+              <Icon name="trash" size={15} />
+              Limpar
+            </button>
             {isRunning ? (
-              <button className={styles.cancelButton} onClick={handleCancel} type="button">
+              <button type="button" className={styles.cancelButton} onClick={handleCancel}>
                 Cancelar importação
               </button>
             ) : null}
           </div>
+
+          <p className={styles.privacyNote}>
+            <Icon name="lock" size={13} />A IA só usa o conteúdo para criar o guia. Nada é
+            publicado sem sua aprovação.
+          </p>
         </form>
+      </article>
 
-        <aside className={styles.sidePanel}>
-          {job ? (
-            <JobProgress job={job} />
-          ) : (
-            <div className={`surfaceCard ${styles.idleCard}`}>
-              <div className={styles.idleIcon}>
-                <Icon name="sparkles" size={20} />
-              </div>
-              <strong>Pronto pra importar.</strong>
-              <p>O acompanhamento da IA aparece aqui assim que você enviar o texto.</p>
-            </div>
-          )}
-
+      {job ? (
+        <div className={styles.statusGrid}>
+          <JobProgress job={job} />
           <div className={`surfaceCard ${styles.historyCard}`}>
             <header className={styles.panelHeader}>
               <h3>Últimas importações</h3>
-              <button onClick={loadHistory} type="button" className={styles.iconButton} aria-label="Atualizar">
+              <button
+                onClick={loadHistory}
+                type="button"
+                className={styles.iconButton}
+                aria-label="Atualizar"
+              >
                 <Icon name="bolt" size={14} />
               </button>
             </header>
@@ -507,8 +615,8 @@ export function AiGuideImportPage() {
               </ul>
             )}
           </div>
-        </aside>
-      </div>
+        </div>
+      ) : null}
 
       {success && guide ? (
         <GuidePreview
@@ -583,8 +691,8 @@ type GuidePreviewProps = {
   suggestionCards: { key: string; card: GuiaIaSugestaoCard }[]
   visibleItems: GuiaIaItem[]
   actionState: ItemActionState
-  filter: 'todos' | 'pendentes' | 'confirmados' | 'duvidas'
-  onFilter: (next: 'todos' | 'pendentes' | 'confirmados' | 'duvidas') => void
+  filter: FilterId
+  onFilter: (next: FilterId) => void
   onConfirm: (item: GuiaIaItem) => void
   onDiscard: (item: GuiaIaItem) => void
 }
@@ -600,7 +708,7 @@ function GuidePreview({
   onDiscard,
 }: GuidePreviewProps) {
   return (
-    <div className={styles.guideSection}>
+    <div className={`surfaceCard ${styles.guideSection}`}>
       <header className={styles.guideHeader}>
         <div>
           <span className={styles.guideEyebrow}>
@@ -649,9 +757,7 @@ function GuidePreview({
                   <h4>{card.nome ?? card.titulo}</h4>
                   <p>{card.motivo}</p>
                   {card.bairro || card.cidade ? (
-                    <small>
-                      {[card.bairro, card.cidade].filter(Boolean).join(' · ')}
-                    </small>
+                    <small>{[card.bairro, card.cidade].filter(Boolean).join(' · ')}</small>
                   ) : null}
                   {card.google_maps_uri ? (
                     <a

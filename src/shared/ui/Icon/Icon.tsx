@@ -45,6 +45,11 @@ type IconName =
   | 'camera'
   | 'leaf'
   | 'globe'
+  | 'lock'
+  | 'tag'
+  | 'list'
+  | 'flag'
+  | 'trash'
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName
@@ -488,6 +493,59 @@ const paths: Record<IconName, ReactElement> = {
         strokeWidth={1.6}
       />
     </>
+  ),
+  lock: (
+    <>
+      <rect x={5} y={11} width={14} height={9} rx={2} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      <path
+        d="M8 11V8a4 4 0 0 1 8 0v3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+    </>
+  ),
+  tag: (
+    <>
+      <path
+        d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth={1.7}
+      />
+      <circle cx={8} cy={8} r={1.4} fill="currentColor" />
+    </>
+  ),
+  list: (
+    <path
+      d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+    />
+  ),
+  flag: (
+    <path
+      d="M5 3v18M5 4h11l-2 4 2 4H5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
+  trash: (
+    <path
+      d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7M10 11v6M14 11v6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   ),
 }
 
