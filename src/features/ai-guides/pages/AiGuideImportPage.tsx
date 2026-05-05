@@ -713,37 +713,42 @@ function GuidePreview({
       <section className={`${styles.itemsPanel} ${isCompact ? styles.itemsPanelCompact : ''}`}>
         <header className={styles.itemsHeader}>
           <div className={styles.itemsTitle}>
-            <span aria-hidden="true">🍔</span>
             <div>
-              <h3 className={styles.subSectionTitle}>Restaurantes do guia</h3>
+              <h3 className={styles.guideMenuTitle}>
+                Para vocês <span className={styles.titleHeart} aria-hidden="true"></span>
+              </h3>
               <p>
-                Explore, compare e decida os melhores lugares juntos.
+                Lugares que combinam com o perfil de vocês.
                 {isCompact ? ' Modo compacto ativado para listas grandes.' : ''}
               </p>
             </div>
           </div>
-          <span className={styles.itemsCount}>
-            {visibleItems.length} {visibleItems.length === 1 ? 'item' : 'itens'}
-          </span>
-          <div className={styles.filterRow}>
-            {(
-              [
-                { id: 'todos', label: 'Todos' },
-                { id: 'confirmados', label: 'Confirmados' },
-                { id: 'pendentes', label: 'Pendentes' },
-                { id: 'duvidas', label: 'Dúvidas' },
-              ] as const
-            ).map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                className={styles.filterChip}
-                data-active={filter === option.id}
-                onClick={() => onFilter(option.id)}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className={styles.itemsControls}>
+            <div className={styles.filterRow} role="tablist">
+              {(
+                [
+                  { id: 'todos', label: 'Todos' },
+                  { id: 'confirmados', label: 'Confirmados' },
+                  { id: 'pendentes', label: 'Pendentes' },
+                  { id: 'duvidas', label: 'Dúvidas' },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={filter === option.id}
+                  className={styles.filterChip}
+                  data-active={filter === option.id}
+                  onClick={() => onFilter(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <span className={styles.itemsCount}>
+              {visibleItems.length} {visibleItems.length === 1 ? 'item' : 'itens'}
+            </span>
           </div>
         </header>
 

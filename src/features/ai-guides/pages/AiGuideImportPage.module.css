@@ -1119,7 +1119,11 @@
 }
 
 .itemsHeader {
-  align-items: center;
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
 }
 
 .itemsCount {
@@ -1133,37 +1137,68 @@
 }
 
 .itemsTitle {
-  align-items: center;
-  display: flex;
-  gap: 0.65rem;
+  min-width: 0;
 }
 
-.itemsTitle > span {
+.guideMenuTitle {
+  color: var(--color-text);
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.titleHeart {
+  background: var(--color-heart);
+  display: inline-block;
+  height: 0.7rem;
+  margin-left: 0.25rem;
+  mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21s-7-4.6-9.2-8.8C.8 8.3 3.1 4.8 6.9 4.8c2 0 3.5 1 5.1 2.8 1.6-1.8 3.1-2.8 5.1-2.8 3.8 0 6.1 3.5 4.1 7.4C19 16.4 12 21 12 21Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  width: 0.76rem;
+}
+
+.itemsControls {
   align-items: center;
-  background: #fff0e9;
-  border-radius: 999px;
-  display: inline-flex;
-  height: 2rem;
-  justify-content: center;
-  width: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  justify-content: flex-end;
 }
 
 .filterRow {
-  gap: 0.45rem;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0.1rem;
+  padding: 0.22rem;
 }
 
 .filterChip {
-  background: #fff3ee;
+  background: transparent;
   border: 0;
-  color: #ff4938;
-  font-size: 0.78rem;
-  font-weight: 850;
-  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.42rem 0.85rem;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.filterChip:hover {
+  color: var(--color-text);
 }
 
 .filterChip[data-active='true'] {
-  background: #111827;
-  border-color: #111827;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.filterChip[data-active='true']:hover {
   color: #ffffff;
 }
 
@@ -1297,8 +1332,7 @@
 }
 
 .itemsPanelCompact .itemsHeader {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  display: flex;
 }
 
 .itemsListCompact {
@@ -1419,7 +1453,8 @@
   }
 
   .itemsPanelCompact .itemsHeader {
-    grid-template-columns: 1fr;
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .itemsListCompact .itemCard {
