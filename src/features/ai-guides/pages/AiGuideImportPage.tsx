@@ -96,6 +96,18 @@ function getStatusTone(status: StatusMatching) {
   return STATUS_TONE[status] ?? 'info'
 }
 
+function getItemOrder(item: GuiaIaItem) {
+  return item.posicao_ranking ?? item.ordem ?? Number.MAX_SAFE_INTEGER
+}
+
+function getItemTitle(item: GuiaIaItem) {
+  return item.nome_normalizado ?? item.nome_importado
+}
+
+function getItemLocation(item: GuiaIaItem) {
+  return [item.bairro, item.cidade].filter(Boolean).join(' · ')
+}
+
 type ItemActionState = Record<string, 'confirmando' | 'descartando' | undefined>
 
 export function AiGuideImportPage() {
@@ -297,7 +309,7 @@ export function AiGuideImportPage() {
   }, [guide])
 
   const visibleItems = useMemo(() => {
-    const items = guide?.itens ?? []
+    const items = [...(guide?.itens ?? [])].sort((a, b) => getItemOrder(a) - getItemOrder(b))
     if (filter === 'todos') return items
     if (filter === 'confirmados') {
       return items.filter((item) => item.lugar_id || item.status_matching === 'confirmado_usuario')
@@ -599,12 +611,16 @@ function GuidePreview({
   onConfirm,
   onDiscard,
 }: GuidePreviewProps) {
+  const heroImage =
+    guide.imagem_capa ?? visibleItems.find((item) => item.foto_url)?.foto_url ?? null
+  const totalText = `${guide.total_itens} restaurante${guide.total_itens === 1 ? '' : 's'}`
+
   return (
     <div className={styles.guideSection}>
       <header className={styles.guideHeader}>
-        <div>
+        <div className={styles.guideHeaderCopy}>
           <span className={styles.guideEyebrow}>
-            <Icon name="bookmark" size={14} /> Guia recém-criado
+            <Icon name="sparkles" size={14} /> Guia importado por IA
           </span>
           <h2>{guide.nome}</h2>
           {guide.descricao ? <p>{guide.descricao}</p> : null}
@@ -620,7 +636,7 @@ function GuidePreview({
               </li>
             ) : null}
             <li>
-              <Icon name="grid" size={13} /> {guide.total_itens} restaurantes
+              <Icon name="grid" size={13} /> {totalText}
             </li>
             {guide.fonte ? (
               <li>
@@ -629,14 +645,34 @@ function GuidePreview({
             ) : null}
           </ul>
         </div>
-        {guide.imagem_capa ? (
-          <img src={guide.imagem_capa} alt={guide.nome} className={styles.guideCover} />
-        ) : null}
+        <div className={styles.guideHeaderActions}>
+          {guide.url_origem ? (
+            <a
+              className={styles.shareGuideButton}
+              href={guide.url_origem}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Icon name="external-link" size={15} /> Abrir fonte
+            </a>
+          ) : null}
+        </div>
+        <div className={styles.guideCover}>
+          {heroImage ? <img src={heroImage} alt="" /> : <Icon name="utensils" size={42} />}
+        </div>
       </header>
 
       {suggestionCards.length > 0 ? (
-        <section>
-          <h3 className={styles.subSectionTitle}>Sugestões pro grupo</h3>
+        <section className={styles.suggestionsPanel}>
+          <header className={styles.previewSectionHeader}>
+            <div>
+              <span className={styles.previewSectionIcon}>
+                <Icon name="sparkles" size={15} />
+              </span>
+              <h3 className={styles.subSectionTitle}>Destaques para o grupo</h3>
+            </div>
+            <p>Sugestoes inteligentes com base nas preferencias de todos.</p>
+          </header>
           <div className={styles.suggestionGrid}>
             {suggestionCards.map(({ key, card }) => {
               const meta = SUGGESTION_LABELS[key] ?? { title: card.titulo, emoji: '✨' }
@@ -660,7 +696,7 @@ function GuidePreview({
                       rel="noopener noreferrer"
                       className={styles.suggestionLink}
                     >
-                      Abrir no Google Maps <Icon name="external-link" size={12} />
+                      Ver no Maps <Icon name="external-link" size={12} />
                     </a>
                   ) : null}
                 </article>
@@ -673,9 +709,15 @@ function GuidePreview({
         </section>
       ) : null}
 
-      <section>
+      <section className={styles.itemsPanel}>
         <header className={styles.itemsHeader}>
-          <h3 className={styles.subSectionTitle}>Restaurantes do guia</h3>
+          <div className={styles.itemsTitle}>
+            <span aria-hidden="true">🍔</span>
+            <div>
+              <h3 className={styles.subSectionTitle}>Restaurantes do guia</h3>
+              <p>Explore, compare e decida os melhores lugares juntos.</p>
+            </div>
+          </div>
           <div className={styles.filterRow}>
             {(
               [
@@ -702,7 +744,7 @@ function GuidePreview({
           <p className={styles.muted}>Nenhum item para esse filtro.</p>
         ) : (
           <ul className={styles.itemsList}>
-            {visibleItems.map((item) => (
+            {visibleItems.map((item, index) => (
               <li key={item.id} className={styles.itemCard}>
                 <div className={styles.itemMedia}>
                   {item.foto_url ? (
@@ -712,22 +754,24 @@ function GuidePreview({
                       <Icon name="utensils" size={22} />
                     </div>
                   )}
-                  {item.posicao_ranking ? (
-                    <span className={styles.itemRank}>#{item.posicao_ranking}</span>
-                  ) : null}
+                  <span className={styles.itemRank}>#{index + 1}</span>
+                  <span className={styles.profileBadge}>
+                    {item.lugar_id ? 'No perfil' : STATUS_LABELS[item.status_matching]}
+                  </span>
                 </div>
                 <div className={styles.itemBody}>
                   <header>
-                    <strong>{item.nome_normalizado ?? item.nome_importado}</strong>
+                    <strong>{getItemTitle(item)}</strong>
                     <span className={styles.itemTag} data-tone={getStatusTone(item.status_matching)}>
                       {STATUS_LABELS[item.status_matching]}
                     </span>
                   </header>
+                  <p className={styles.importedName}>{item.nome_importado}</p>
                   <ul className={styles.itemMeta}>
-                    {item.bairro || item.cidade ? (
+                    {getItemLocation(item) ? (
                       <li>
                         <Icon name="pin" size={12} />
-                        {[item.bairro, item.cidade].filter(Boolean).join(' · ')}
+                        {getItemLocation(item)}
                       </li>
                     ) : null}
                     {item.categoria ? (
@@ -739,7 +783,7 @@ function GuidePreview({
                     {item.rating ? (
                       <li>
                         <Icon name="star" size={12} />
-                        {item.rating.toFixed(1)} ({item.total_avaliacoes ?? 0})
+                        {item.rating.toFixed(1).replace('.', ',')} ({item.total_avaliacoes ?? 0})
                       </li>
                     ) : null}
                     {item.preco_nivel ? (
@@ -750,14 +794,7 @@ function GuidePreview({
                     ) : null}
                   </ul>
                   {item.trecho_original ? (
-                    <p className={styles.itemQuote}>“{item.trecho_original}”</p>
-                  ) : null}
-                  {item.alertas.length > 0 ? (
-                    <ul className={styles.itemAlerts}>
-                      {item.alertas.map((alert, index) => (
-                        <li key={`${alert}-${index}`}>{alert}</li>
-                      ))}
-                    </ul>
+                    <p className={styles.itemQuote}>{item.trecho_original}</p>
                   ) : null}
                 </div>
                 <div className={styles.itemActions}>
@@ -767,7 +804,8 @@ function GuidePreview({
                     disabled={Boolean(actionState[item.id])}
                     onClick={() => onConfirm(item)}
                   >
-                    {actionState[item.id] === 'confirmando' ? 'Confirmando…' : 'Confirmar'}
+                    <Icon name="check" size={14} />
+                    {actionState[item.id] === 'confirmando' ? 'Confirmando...' : 'Confirmar'}
                   </button>
                   <button
                     type="button"
@@ -775,7 +813,8 @@ function GuidePreview({
                     disabled={Boolean(actionState[item.id])}
                     onClick={() => onDiscard(item)}
                   >
-                    {actionState[item.id] === 'descartando' ? 'Removendo…' : 'Descartar'}
+                    <Icon name="x" size={14} />
+                    {actionState[item.id] === 'descartando' ? 'Removendo...' : 'Descartar'}
                   </button>
                   {item.google_maps_uri ? (
                     <a
@@ -784,7 +823,7 @@ function GuidePreview({
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Maps <Icon name="external-link" size={11} />
+                      <Icon name="pin" size={14} /> Ver no Maps
                     </a>
                   ) : null}
                 </div>
