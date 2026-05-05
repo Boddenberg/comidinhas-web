@@ -717,10 +717,7 @@ function GuidePreview({
               <h3 className={styles.guideMenuTitle}>
                 Para vocês <span className={styles.titleHeart} aria-hidden="true"></span>
               </h3>
-              <p>
-                Lugares que combinam com o perfil de vocês.
-                {isCompact ? ' Modo compacto ativado para listas grandes.' : ''}
-              </p>
+              <p>Lugares que combinam com o perfil de vocês</p>
             </div>
           </div>
           <div className={styles.itemsControls}>
