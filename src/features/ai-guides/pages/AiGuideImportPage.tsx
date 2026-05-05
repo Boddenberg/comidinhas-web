@@ -614,7 +614,6 @@ function GuidePreview({
   const heroImage =
     guide.imagem_capa ?? visibleItems.find((item) => item.foto_url)?.foto_url ?? null
   const totalText = `${guide.total_itens} restaurante${guide.total_itens === 1 ? '' : 's'}`
-  const isCompact = visibleItems.length >= 24
 
   return (
     <div className={styles.guideSection}>
@@ -710,49 +709,41 @@ function GuidePreview({
         </section>
       ) : null}
 
-      <section className={`${styles.itemsPanel} ${isCompact ? styles.itemsPanelCompact : ''}`}>
+      <section className={styles.itemsPanel}>
         <header className={styles.itemsHeader}>
           <div className={styles.itemsTitle}>
+            <span aria-hidden="true">🍔</span>
             <div>
-              <h3 className={styles.guideMenuTitle}>
-                Para vocês <span className={styles.titleHeart} aria-hidden="true"></span>
-              </h3>
-              <p>Lugares que combinam com o perfil de vocês</p>
+              <h3 className={styles.subSectionTitle}>Restaurantes do guia</h3>
+              <p>Explore, compare e decida os melhores lugares juntos.</p>
             </div>
           </div>
-          <div className={styles.itemsControls}>
-            <div className={styles.filterRow} role="tablist">
-              {(
-                [
-                  { id: 'todos', label: 'Todos' },
-                  { id: 'confirmados', label: 'Confirmados' },
-                  { id: 'pendentes', label: 'Pendentes' },
-                  { id: 'duvidas', label: 'Dúvidas' },
-                ] as const
-              ).map((option) => (
-                <button
-                  key={option.id}
-                  role="tab"
-                  type="button"
-                  aria-selected={filter === option.id}
-                  className={styles.filterChip}
-                  data-active={filter === option.id}
-                  onClick={() => onFilter(option.id)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <span className={styles.itemsCount}>
-              {visibleItems.length} {visibleItems.length === 1 ? 'item' : 'itens'}
-            </span>
+          <div className={styles.filterRow}>
+            {(
+              [
+                { id: 'todos', label: 'Todos' },
+                { id: 'confirmados', label: 'Confirmados' },
+                { id: 'pendentes', label: 'Pendentes' },
+                { id: 'duvidas', label: 'Dúvidas' },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className={styles.filterChip}
+                data-active={filter === option.id}
+                onClick={() => onFilter(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </header>
 
         {visibleItems.length === 0 ? (
           <p className={styles.muted}>Nenhum item para esse filtro.</p>
         ) : (
-          <ul className={`${styles.itemsList} ${isCompact ? styles.itemsListCompact : ''}`}>
+          <ul className={styles.itemsList}>
             {visibleItems.map((item, index) => (
               <li key={item.id} className={styles.itemCard}>
                 <div className={styles.itemMedia}>
