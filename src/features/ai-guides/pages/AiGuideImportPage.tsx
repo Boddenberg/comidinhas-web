@@ -614,6 +614,7 @@ function GuidePreview({
   const heroImage =
     guide.imagem_capa ?? visibleItems.find((item) => item.foto_url)?.foto_url ?? null
   const totalText = `${guide.total_itens} restaurante${guide.total_itens === 1 ? '' : 's'}`
+  const isCompact = visibleItems.length >= 24
 
   return (
     <div className={styles.guideSection}>
@@ -709,15 +710,21 @@ function GuidePreview({
         </section>
       ) : null}
 
-      <section className={styles.itemsPanel}>
+      <section className={`${styles.itemsPanel} ${isCompact ? styles.itemsPanelCompact : ''}`}>
         <header className={styles.itemsHeader}>
           <div className={styles.itemsTitle}>
             <span aria-hidden="true">🍔</span>
             <div>
               <h3 className={styles.subSectionTitle}>Restaurantes do guia</h3>
-              <p>Explore, compare e decida os melhores lugares juntos.</p>
+              <p>
+                Explore, compare e decida os melhores lugares juntos.
+                {isCompact ? ' Modo compacto ativado para listas grandes.' : ''}
+              </p>
             </div>
           </div>
+          <span className={styles.itemsCount}>
+            {visibleItems.length} {visibleItems.length === 1 ? 'item' : 'itens'}
+          </span>
           <div className={styles.filterRow}>
             {(
               [
@@ -743,7 +750,7 @@ function GuidePreview({
         {visibleItems.length === 0 ? (
           <p className={styles.muted}>Nenhum item para esse filtro.</p>
         ) : (
-          <ul className={styles.itemsList}>
+          <ul className={`${styles.itemsList} ${isCompact ? styles.itemsListCompact : ''}`}>
             {visibleItems.map((item, index) => (
               <li key={item.id} className={styles.itemCard}>
                 <div className={styles.itemMedia}>

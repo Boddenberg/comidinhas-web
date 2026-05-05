@@ -1122,6 +1122,16 @@
   align-items: center;
 }
 
+.itemsCount {
+  background: #f8fafc;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 0.45rem 0.7rem;
+}
+
 .itemsTitle {
   align-items: center;
   display: flex;
@@ -1282,6 +1292,98 @@
   color: var(--color-text);
 }
 
+.itemsPanelCompact {
+  gap: 0.8rem;
+}
+
+.itemsPanelCompact .itemsHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.itemsListCompact {
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+
+.itemsListCompact .itemCard {
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: 5.4rem minmax(0, 1fr);
+  min-height: 7.6rem;
+}
+
+.itemsListCompact .itemMedia {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 7.6rem;
+}
+
+.itemsListCompact .itemRank {
+  font-size: 0.72rem;
+  left: 0.45rem;
+  padding: 0.24rem 0.43rem;
+  top: 0.45rem;
+}
+
+.itemsListCompact .profileBadge,
+.itemsListCompact .itemTag,
+.itemsListCompact .itemQuote {
+  display: none;
+}
+
+.itemsListCompact .itemBody {
+  gap: 0.32rem;
+  min-width: 0;
+  padding: 0.72rem 0.75rem 0.2rem;
+}
+
+.itemsListCompact .itemBody header {
+  display: block;
+}
+
+.itemsListCompact .itemBody header strong {
+  display: block;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemsListCompact .importedName {
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemsListCompact .itemMeta {
+  display: grid;
+  font-size: 0.75rem;
+  gap: 0.18rem;
+}
+
+.itemsListCompact .itemMeta li {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemsListCompact .itemActions {
+  grid-column: 2;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem 0.72rem;
+}
+
+.itemsListCompact .confirmBtn,
+.itemsListCompact .discardBtn,
+.itemsListCompact .mapsLink {
+  font-size: 0.74rem;
+  min-height: 1.9rem;
+  padding: 0.38rem 0.56rem;
+}
+
 @media (max-width: 1240px) {
   .suggestionGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1314,5 +1416,13 @@
   .suggestionGrid,
   .itemsList {
     grid-template-columns: 1fr;
+  }
+
+  .itemsPanelCompact .itemsHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .itemsListCompact .itemCard {
+    grid-template-columns: 4.7rem minmax(0, 1fr);
   }
 }
