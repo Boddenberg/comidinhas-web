@@ -1,20 +1,6 @@
 .page {
   display: grid;
-  gap: 1.35rem;
-}
-
-.headerAction {
-  align-items: center;
-  background: var(--color-primary);
-  border: 0;
-  border-radius: 999px;
-  color: #ffffff;
-  cursor: pointer;
-  display: inline-flex;
-  font-family: inherit;
-  font-weight: 800;
-  gap: 0.45rem;
-  padding: 0.78rem 1rem;
+  gap: 1rem;
 }
 
 .error {
@@ -25,30 +11,183 @@
   padding: 0.85rem 1rem;
 }
 
-.layout {
+.hero {
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 76% 24%, rgba(255, 84, 55, 0.2), transparent 34%),
+    linear-gradient(120deg, #fff8f2 0%, #fff2ed 48%, #fff 100%);
+  border: 1px solid rgba(255, 116, 73, 0.18);
+  border-radius: 24px;
+  box-shadow: var(--color-shadow-sm);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(16rem, 24rem);
+  min-height: 13rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.heroCopy {
+  align-self: center;
+  display: grid;
+  gap: 0.75rem;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.aiBadge,
+.secondaryAction,
+.heroMeta span,
+.sectionHeader div,
+.restaurantsHeader,
+.restaurantStats,
+.cardActions {
+  align-items: center;
+  display: flex;
+}
+
+.aiBadge {
+  background: rgba(255, 109, 31, 0.1);
+  border-radius: 999px;
+  color: #f05a24;
+  font-size: 0.76rem;
+  font-weight: 900;
+  gap: 0.4rem;
+  letter-spacing: 0.02em;
+  padding: 0.5rem 0.7rem;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.hero h1 {
+  color: var(--color-text);
+  font-size: clamp(1.7rem, 3vw, 2.45rem);
+  font-weight: 900;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.heroCopy p {
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 44rem;
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.heroMeta span {
+  color: #475569;
+  font-size: 0.92rem;
+  font-weight: 750;
+  gap: 0.4rem;
+}
+
+.heroActions {
+  align-items: center;
+  align-self: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+  padding: 2rem 0.6rem;
+  position: relative;
+  z-index: 2;
+}
+
+.secondaryAction {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 999px;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  gap: 0.45rem;
+  padding: 0.7rem 0.9rem;
+  text-decoration: none;
+}
+
+.heroArt {
+  align-items: center;
+  background: linear-gradient(135deg, #151515, #3c1a10);
+  color: rgba(255, 255, 255, 0.78);
+  display: flex;
+  justify-content: center;
+  min-height: 13rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.heroArt::before {
+  background: linear-gradient(90deg, #fff5ef 0%, rgba(255, 245, 239, 0) 100%);
+  bottom: 0;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 35%;
+  z-index: 1;
+}
+
+.heroArt img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.contentGrid {
   align-items: start;
   display: grid;
-  gap: 1.25rem;
-  grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.4fr);
+  gap: 1rem;
+  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+}
+
+.sidebarPanel,
+.highlights,
+.restaurantsPanel {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--color-line);
+  border-radius: 20px;
+  box-shadow: var(--color-shadow-sm);
+}
+
+.sidebarPanel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
 }
 
 .form {
   display: grid;
-  gap: 1rem;
-  padding: 1.25rem;
+  gap: 0.85rem;
 }
 
 .form h2,
-.panelHeader h2 {
-  font-size: 1.25rem;
+.panelHeader h2,
+.sectionHeader h2,
+.restaurantsHeader h2 {
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 900;
+  margin: 0;
 }
 
 .form p,
 .muted,
 .empty p,
-.placePicker p {
+.placePicker p,
+.sectionHeader p,
+.restaurantsHeader p,
+.restaurantNotes {
   color: var(--color-text-muted);
-  line-height: 1.6;
+  line-height: 1.55;
+  margin: 0;
 }
 
 .placePicker {
@@ -65,7 +204,7 @@
 .placeOptions {
   display: grid;
   gap: 0.45rem;
-  max-height: 17rem;
+  max-height: 14rem;
   overflow: auto;
   padding-right: 0.2rem;
 }
@@ -74,7 +213,7 @@
   align-items: center;
   background: var(--color-bg-soft);
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   cursor: pointer;
   display: flex;
   gap: 0.55rem;
@@ -92,7 +231,7 @@
 
 .guidesPanel {
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .panelHeader {
@@ -105,15 +244,15 @@
   background: var(--color-primary-soft);
   border-radius: 999px;
   color: var(--color-primary);
-  font-size: 0.8rem;
-  font-weight: 800;
-  padding: 0.45rem 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 900;
+  padding: 0.4rem 0.62rem;
 }
 
 .empty {
   background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 16px;
   display: grid;
   gap: 0.35rem;
   padding: 1.25rem;
@@ -121,63 +260,69 @@
 
 .guidesGrid {
   display: grid;
-  gap: 0.9rem;
+  gap: 0.65rem;
 }
 
 .guideCard {
   align-items: start;
-  background: var(--color-surface);
+  background: #ffffff;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--color-shadow-sm);
+  border-radius: 16px;
   display: grid;
-  gap: 0.85rem;
-  grid-template-columns: 3rem minmax(0, 1fr) auto;
-  padding: 1rem;
+  gap: 0.75rem;
+  grid-template-columns: 2.55rem minmax(0, 1fr) auto;
+  padding: 0.75rem;
+}
+
+.guideCardActive {
+  border-color: rgba(255, 71, 55, 0.45);
+  box-shadow: 0 10px 28px rgba(255, 71, 55, 0.09);
 }
 
 .guideInitial {
   align-items: center;
-  background: linear-gradient(135deg, rgba(91, 141, 239, 0.14), rgba(196, 69, 105, 0.12));
-  border-radius: var(--radius-md);
-  color: var(--color-primary-strong);
+  background: linear-gradient(135deg, #ff4938, #ff8a3d);
+  border-radius: 14px;
+  color: #ffffff;
   display: inline-flex;
   font-weight: 900;
-  height: 3rem;
+  height: 2.55rem;
   justify-content: center;
-  width: 3rem;
+  width: 2.55rem;
 }
 
 .guideBody {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.35rem;
   min-width: 0;
 }
 
-.guideBody header {
-  align-items: center;
-  display: flex;
-  gap: 0.65rem;
+.guideSelect {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  gap: 0.1rem;
+  padding: 0;
+  text-align: left;
 }
 
-.guideBody strong {
+.guideSelect strong {
   color: var(--color-text);
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
-.guideBody header span {
+.guideSelect span,
+.guideBody small {
   color: var(--color-text-muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .guideBody p {
-  color: var(--color-text);
-  line-height: 1.55;
-}
-
-.guideBody small {
   color: var(--color-text-muted);
-  line-height: 1.5;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .deleteButton {
@@ -188,9 +333,9 @@
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
-  height: 2rem;
+  height: 1.8rem;
   justify-content: center;
-  width: 2rem;
+  width: 1.8rem;
 }
 
 .deleteButton:hover {
@@ -198,8 +343,304 @@
   color: #9f2d2d;
 }
 
-@media (max-width: 920px) {
-  .layout {
+.guideExperience {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.highlights,
+.restaurantsPanel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.sectionHeader {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.sectionHeader div {
+  gap: 0.55rem;
+}
+
+.sectionIcon {
+  align-items: center;
+  background: #ede9fe;
+  border-radius: 999px;
+  color: #7c3aed;
+  display: inline-flex;
+  height: 1.9rem;
+  justify-content: center;
+  width: 1.9rem;
+}
+
+.sectionHeader p,
+.restaurantsHeader p {
+  font-size: 0.86rem;
+}
+
+.highlightGrid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.highlightCard {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 246, 242, 0.78)),
+    #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  display: grid;
+  gap: 0.45rem;
+  min-height: 8.6rem;
+  padding: 1rem;
+}
+
+.highlightIcon {
+  align-items: center;
+  background: #fff0e9;
+  border-radius: 999px;
+  color: #ff4938;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.highlightCard small {
+  color: #ff4938;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.highlightCard strong {
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.highlightCard p {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.restaurantsHeader {
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  justify-content: space-between;
+}
+
+.filterPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.filterPills span {
+  background: #fff3ee;
+  border-radius: 999px;
+  color: #ff4938;
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 0.45rem 0.75rem;
+}
+
+.filterPills .filterActive {
+  background: #111827;
+  color: #ffffff;
+}
+
+.restaurantGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.restaurantCard {
+  background: #ffffff;
+  border: 1px solid var(--color-line);
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.restaurantThumb {
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #ffe8dd, #f6f8fb);
+  overflow: hidden;
+  position: relative;
+}
+
+.restaurantThumb img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.restaurantFallback {
+  align-items: center;
+  color: #ff4938;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+}
+
+.rankBadge {
+  background: rgba(17, 24, 39, 0.86);
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  left: 0.8rem;
+  padding: 0.38rem 0.55rem;
+  position: absolute;
+  top: 0.75rem;
+}
+
+.favoriteButton {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  height: 2.15rem;
+  justify-content: center;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.7rem;
+  width: 2.15rem;
+}
+
+.restaurantBody {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.95rem 1rem 1rem;
+}
+
+.restaurantBody h3 {
+  color: var(--color-text);
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.restaurantMeta {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  margin: 0;
+}
+
+.restaurantStats {
+  color: #475569;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  font-weight: 750;
+  gap: 0.8rem;
+}
+
+.restaurantStats span {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.restaurantStats svg {
+  color: #ffb020;
+}
+
+.restaurantNotes {
+  font-size: 0.88rem;
+}
+
+.cardActions {
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+.cardActions button,
+.cardActions a {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 850;
+  gap: 0.35rem;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.55rem 0.85rem;
+  text-decoration: none;
+}
+
+.cardActions button {
+  background: #ff4938;
+  border: 1px solid #ff4938;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.cardActions a {
+  background: #ffffff;
+  border: 1px solid var(--color-line);
+  color: var(--color-text);
+}
+
+@media (max-width: 1180px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem);
+  }
+
+  .heroActions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding: 0 2rem 1.5rem;
+  }
+
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .restaurantGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .heroCopy,
+  .heroActions {
+    padding-left: 1.2rem;
+    padding-right: 1.2rem;
+  }
+
+  .heroArt {
+    min-height: 10rem;
+  }
+
+  .heroArt::before {
+    display: none;
+  }
+
+  .highlightGrid,
+  .restaurantGrid {
     grid-template-columns: 1fr;
   }
 }

@@ -7,6 +7,7 @@ export type Guia = {
   grupo_id: string
   nome: string
   descricao: string | null
+  link: string | null
   lugar_ids: string[]
   lugares: Place[]
   total_lugares: number
@@ -22,6 +23,8 @@ type GuiaRaw = {
   name?: string
   descricao?: string | null
   description?: string | null
+  link?: string | null
+  url?: string | null
   lugar_ids?: string[]
   place_ids?: string[]
   lugares?: LugarResponse[]
@@ -45,6 +48,7 @@ export type CreateGuiaPayload = {
   grupo_id: string
   nome: string
   descricao?: string
+  link?: string
   lugar_ids?: string[]
 }
 
@@ -57,6 +61,7 @@ function normalizeGuia(raw: GuiaRaw): Guia {
     grupo_id: raw.grupo_id ?? raw.group_id ?? '',
     nome: raw.nome ?? raw.name ?? 'Guia sem nome',
     descricao: raw.descricao ?? raw.description ?? null,
+    link: raw.link ?? raw.url ?? null,
     lugar_ids: lugarIds,
     lugares: lugaresRaw.map(lugarToPlace),
     total_lugares:
