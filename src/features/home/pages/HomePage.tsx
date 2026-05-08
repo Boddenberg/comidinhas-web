@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
-import type { Grupo, Perfil } from '@/features/auth/types'
 import { recommendRestaurants } from '@/features/chat/services/chatService'
 import type { RestaurantRecommendation } from '@/features/chat/types'
 import { useAddPlace } from '@/features/places/AddPlaceContext'
@@ -213,19 +212,6 @@ function buildFallbackGoogleQuery(
   parts.push(city?.trim() || 'São Paulo')
 
   return parts.join(' ')
-}
-
-function isPersonalGroup(grupo: Grupo | null | undefined, perfil: Perfil | null) {
-  if (!grupo) return false
-  return grupo.tipo === 'individual' || grupo.id === perfil?.grupo_individual_id
-}
-
-function getProfileLabel(grupo: Grupo | null | undefined, perfil: Perfil | null) {
-  if (!grupo) return 'Perfil selecionado'
-  if (isPersonalGroup(grupo, perfil)) {
-    return perfil?.nome?.trim() || grupo.nome || 'Meu perfil'
-  }
-  return grupo.nome || 'Grupo'
 }
 
 function formatRelativeTime(iso: string) {
@@ -567,8 +553,6 @@ export function HomePage() {
     }))
   }, [home])
 
-  const activeProfileName = getProfileLabel(grupo, perfil)
-
   return (
     <div className={styles.layout}>
       {/* === Main column === */}
@@ -834,9 +818,6 @@ export function HomePage() {
             <p className={styles.aiCardError}>{aiDecideError}</p>
           ) : null}
 
-          <p className={styles.aiCardFooter}>
-            Baseado no perfil <strong>{activeProfileName}</strong>
-          </p>
         </section>
 
         {/* Discover area */}
