@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { recommendRestaurants } from '@/features/chat/services/chatService'
 import type { RestaurantRecommendation } from '@/features/chat/types'
 import { useAddPlace } from '@/features/places/AddPlaceContext'
+import { updatePlace } from '@/features/places/services/placesService'
 import type { Place } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
@@ -255,6 +256,42 @@ function mergeCreatedPlace(home: HomeDashboard, place: Place): HomeDashboard {
   }
 }
 
+function replacePlace(list: Place[], place: Place) {
+  return list.map((item) => (item.id === place.id ? place : item))
+}
+
+function upsertPlace(list: Place[], place: Place) {
+  const withoutPlace = list.filter((item) => item.id !== place.id)
+  return [place, ...withoutPlace].slice(0, Math.max(list.length, 1))
+}
+
+function syncHomePlace(home: HomeDashboard, updated: Place, previous?: Place): HomeDashboard {
+  const favoriteDelta =
+    previous && previous.is_favorite !== updated.is_favorite
+      ? updated.is_favorite
+        ? 1
+        : -1
+      : 0
+
+  return {
+    ...home,
+    counters: {
+      ...home.counters,
+      total_favorites: Math.max(0, home.counters.total_favorites + favoriteDelta),
+    },
+    latest_places: replacePlace(home.latest_places, updated),
+    top_favorites: updated.is_favorite
+      ? upsertPlace(home.top_favorites, updated)
+      : home.top_favorites.filter((item) => item.id !== updated.id),
+    want_to_go: updated.status === 'quero_ir'
+      ? upsertPlace(replacePlace(home.want_to_go, updated), updated)
+      : home.want_to_go.filter((item) => item.id !== updated.id),
+    want_to_return: updated.status === 'quero_voltar'
+      ? upsertPlace(replacePlace(home.want_to_return, updated), updated)
+      : home.want_to_return.filter((item) => item.id !== updated.id),
+  }
+}
+
 function priceLabel(range: number | null) {
   if (!range) return '—'
   return PRICE_SYMBOL[range] ?? '$$'
@@ -308,6 +345,8 @@ export function HomePage() {
   const [openAiMenu, setOpenAiMenu] = useState<AiMenuId | null>(null)
   const [aiDecideLoading, setAiDecideLoading] = useState(false)
   const [aiDecideError, setAiDecideError] = useState<string | null>(null)
+  const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null)
+  const [favoriteError, setFavoriteError] = useState<string | null>(null)
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -531,6 +570,24 @@ export function HomePage() {
 
   function handleScrollToTaste() {
     tasteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  async function handleToggleFavorite(place: Place) {
+    if (favoriteBusyId) return
+    setFavoriteBusyId(place.id)
+    setFavoriteError(null)
+
+    try {
+      const updated = await updatePlace(place.id, { is_favorite: !place.is_favorite })
+      setHome((current) => (current ? syncHomePlace(current, updated, place) : current))
+      setTodaySuggestions((current) =>
+        current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+      )
+    } catch (err) {
+      setFavoriteError(getErrorMessage(err, 'Nao foi possivel atualizar o favorito.'))
+    } finally {
+      setFavoriteBusyId(null)
+    }
   }
 
   const suggestions = todaySuggestions
@@ -839,9 +896,16 @@ export function HomePage() {
                   </button>
                 )
               : suggestions.map((place, idx) => (
-                  <SuggestionCard key={place.id} place={place} index={idx} />
+                  <SuggestionCard
+                    busy={favoriteBusyId === place.id}
+                    key={place.id}
+                    onToggleFavorite={handleToggleFavorite}
+                    place={place}
+                    index={idx}
+                  />
                 ))}
         </div>
+        {favoriteError ? <p className={styles.inlineError}>{favoriteError}</p> : null}
       </section>
 
       {/* === Atalhos rápidos === */}
@@ -990,7 +1054,13 @@ export function HomePage() {
         ) : (
           <div className={styles.placesGrid}>
             {paraVocesPlaces.map((place, idx) => (
-              <ParaVocesCard key={place.id} place={place} index={idx} />
+              <ParaVocesCard
+                busy={favoriteBusyId === place.id}
+                key={place.id}
+                onToggleFavorite={handleToggleFavorite}
+                place={place}
+                index={idx}
+              />
             ))}
           </div>
         )}
@@ -999,12 +1069,21 @@ export function HomePage() {
   )
 }
 
-function SuggestionCard({ place, index }: { place: Place; index: number }) {
+function SuggestionCard({
+  busy,
+  index,
+  onToggleFavorite,
+  place,
+}: {
+  busy: boolean
+  index: number
+  onToggleFavorite: (place: Place) => void
+  place: Place
+}) {
   const tag = tagFor(index)
   const cuisine = place.category ?? 'Sem categoria'
   const price = priceLabel(place.price_range)
   const rating = formatRating(place.rating)
-  const isBookmark = index === 2
   const distance = distanceLabel(index)
   const matchScore = 92 - index * 4
 
@@ -1032,13 +1111,15 @@ function SuggestionCard({ place, index }: { place: Place; index: number }) {
         </span>
         <button
           type="button"
-          className={styles.suggestSave}
-          aria-label={isBookmark ? 'Salvar' : 'Favoritar'}
+          className={`${styles.suggestSave} ${
+            place.is_favorite ? styles.suggestSaveActive : ''
+          }`}
+          aria-label={place.is_favorite ? 'Remover dos favoritos' : 'Favoritar'}
+          aria-pressed={place.is_favorite}
+          disabled={busy}
+          onClick={() => onToggleFavorite(place)}
         >
-          <Icon
-            name={isBookmark ? 'bookmark-filled' : 'heart-filled'}
-            size={14}
-          />
+          <Icon name={place.is_favorite ? 'heart-filled' : 'heart'} size={14} />
         </button>
       </div>
       <div className={styles.suggestBody}>
@@ -1066,7 +1147,17 @@ function SuggestionCard({ place, index }: { place: Place; index: number }) {
   )
 }
 
-function ParaVocesCard({ place, index }: { place: Place; index: number }) {
+function ParaVocesCard({
+  busy,
+  index,
+  onToggleFavorite,
+  place,
+}: {
+  busy: boolean
+  index: number
+  onToggleFavorite: (place: Place) => void
+  place: Place
+}) {
   const cuisine = place.category ?? 'Sem categoria'
   const price = priceLabel(place.price_range)
   const rating = formatRating(place.rating)
@@ -1094,6 +1185,9 @@ function ParaVocesCard({ place, index }: { place: Place; index: number }) {
             place.is_favorite ? styles.placeFavoriteActive : ''
           }`}
           aria-label={place.is_favorite ? 'Remover dos favoritos' : 'Favoritar'}
+          aria-pressed={place.is_favorite}
+          disabled={busy}
+          onClick={() => onToggleFavorite(place)}
         >
           <Icon name={place.is_favorite ? 'heart-filled' : 'heart'} size={14} />
         </button>
