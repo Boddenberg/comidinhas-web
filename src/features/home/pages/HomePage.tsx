@@ -1043,16 +1043,25 @@ function ParaVocesCard({ place, index }: { place: Place; index: number }) {
           <img alt={place.name} loading="lazy" src={place.image_url} />
         ) : (
           <div className={styles.placeThumbFallback}>
-            <Icon name="utensils" size={26} />
+            <Icon name="utensils" size={28} />
           </div>
         )}
+        <span className={styles.placeThumbShade} aria-hidden="true" />
         <button
           type="button"
-          className={styles.placeFavorite}
-          aria-label="Favoritar"
+          className={`${styles.placeFavorite} ${
+            place.is_favorite ? styles.placeFavoriteActive : ''
+          }`}
+          aria-label={place.is_favorite ? 'Remover dos favoritos' : 'Favoritar'}
         >
-          <Icon name={place.is_favorite ? 'heart-filled' : 'heart'} size={13} />
+          <Icon name={place.is_favorite ? 'heart-filled' : 'heart'} size={14} />
         </button>
+        {place.is_favorite ? (
+          <span className={styles.placeFavBadge}>
+            <Icon name="heart-filled" size={10} />
+            Favorito
+          </span>
+        ) : null}
       </div>
       <div className={styles.placeBody}>
         <strong className={styles.placeName}>{place.name}</strong>
@@ -1061,7 +1070,7 @@ function ParaVocesCard({ place, index }: { place: Place; index: number }) {
             {cuisine} · {price}
           </span>
           <span className={styles.placeRating}>
-            <Icon name="star" size={11} className={styles.placeStarIcon} />
+            <Icon name="star" size={12} className={styles.placeStarIcon} />
             {rating}
           </span>
         </div>
@@ -1079,6 +1088,7 @@ function ParaVocesCard({ place, index }: { place: Place; index: number }) {
             ))}
           </div>
           <span className={styles.placeDistance}>
+            <Icon name="pin" size={10} />
             {distanceLabel(index)} · {neighborhoodLabel(index)}
           </span>
         </div>
