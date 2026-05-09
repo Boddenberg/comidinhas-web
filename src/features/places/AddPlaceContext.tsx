@@ -16,6 +16,9 @@ type OpenOptions = {
   initialPlaceId?: string
   titleOverride?: string
   subtitleOverride?: string
+  isAiPick?: boolean
+  aiMotivo?: string | null
+  onTryAgain?: () => void
 }
 
 type AddPlaceContextValue = {
@@ -69,8 +72,11 @@ export function AddPlaceProvider({ children }: ProviderProps) {
           initialMode={options.initialMode ?? 'google'}
           initialPlaceId={options.initialPlaceId}
           initialQuery={options.initialQuery ?? ''}
+          isAiPick={options.isAiPick}
+          aiMotivo={options.aiMotivo}
           onClose={close}
           onCreated={handleCreated}
+          onTryAgain={options.onTryAgain}
           subtitleOverride={options.subtitleOverride}
           titleOverride={options.titleOverride}
         />
