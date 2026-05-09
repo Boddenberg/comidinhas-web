@@ -752,16 +752,27 @@ export function HomePage() {
       {/* === Combina com hoje === */}
       <section className={styles.suggestSection} aria-label="Sugestões de hoje">
         <header className={styles.suggestHeader}>
-          <div>
+          <div className={styles.suggestHeaderText}>
             <span className={styles.sectionEyebrow}>
               <Icon name="sparkles" size={12} />
               Combina com hoje
             </span>
-            <h2 className={styles.sectionTitle}>Sugestões para o clima e seu humor</h2>
+            <h2 className={styles.sectionTitle}>
+              Selecionados para o clima e seu humor
+            </h2>
+            <p className={styles.sectionMuted}>
+              Atualizamos a cada hora com base em onde vocês estão e o que combina agora.
+            </p>
           </div>
-          <Link to="/lugares" className={styles.sectionLink}>
-            Ver todas <Icon name="arrow-right" size={14} />
-          </Link>
+          <div className={styles.suggestHeaderMeta}>
+            <span className={styles.suggestPulse} aria-hidden="true">
+              <span className={styles.suggestPulseDot} />
+              ao vivo
+            </span>
+            <Link to="/lugares" className={styles.sectionLink}>
+              Ver todas <Icon name="arrow-right" size={14} />
+            </Link>
+          </div>
         </header>
 
         <div className={styles.suggestRow}>
@@ -922,6 +933,8 @@ function SuggestionCard({ place, index }: { place: Place; index: number }) {
   const price = priceLabel(place.price_range)
   const rating = formatRating(place.rating)
   const isBookmark = index === 2
+  const distance = distanceLabel(index)
+  const matchScore = 92 - index * 4
 
   return (
     <article className={styles.suggestCard}>
@@ -930,11 +943,20 @@ function SuggestionCard({ place, index }: { place: Place; index: number }) {
           <img alt={place.name} loading="lazy" src={place.image_url} />
         ) : (
           <div className={styles.suggestThumbFallback}>
-            <Icon name="utensils" size={26} />
+            <Icon name="utensils" size={32} />
           </div>
         )}
-        <span className={`${styles.suggestTag} ${styles[`suggestTag_${tag.toLowerCase().replace('â', 'a').replace('ô', 'o')}`]}`}>
-          {tag.toUpperCase()}
+        <span className={styles.suggestThumbShade} aria-hidden="true" />
+        <span
+          className={`${styles.suggestTag} ${
+            styles[`suggestTag_${tag.toLowerCase().replace('â', 'a').replace('ô', 'o')}`]
+          }`}
+        >
+          {tag}
+        </span>
+        <span className={styles.suggestMatch} aria-label={`Match de ${matchScore} por cento`}>
+          <Icon name="sparkles" size={11} />
+          {matchScore}%
         </span>
         <button
           type="button"
@@ -943,7 +965,7 @@ function SuggestionCard({ place, index }: { place: Place; index: number }) {
         >
           <Icon
             name={isBookmark ? 'bookmark-filled' : 'heart-filled'}
-            size={13}
+            size={14}
           />
         </button>
       </div>
@@ -954,8 +976,17 @@ function SuggestionCard({ place, index }: { place: Place; index: number }) {
             {cuisine} · {price}
           </span>
           <span className={styles.suggestRating}>
-            <Icon name="star" size={11} className={styles.suggestStarIcon} />
+            <Icon name="star" size={12} className={styles.suggestStarIcon} />
             {rating}
+          </span>
+        </div>
+        <div className={styles.suggestFooter}>
+          <span className={styles.suggestDistance}>
+            <Icon name="pin" size={11} />
+            {distance}
+          </span>
+          <span className={styles.suggestArrow} aria-hidden="true">
+            <Icon name="arrow-right" size={13} />
           </span>
         </div>
       </div>
