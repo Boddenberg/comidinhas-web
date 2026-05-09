@@ -728,18 +728,24 @@ export function HomePage() {
         </div>
 
         <div className={styles.tasteFooter}>
-          <button
-            type="button"
-            className={styles.tasteCta}
-            disabled={aiDecideLoading}
-            onClick={handleAiDecide}
-          >
-            <Icon name="sparkles" size={14} />
-            <span>{aiDecideLoading ? 'Decidindo…' : 'Decidir agora'}</span>
-          </button>
-          {aiDecideError ? (
-            <span className={styles.tasteError}>{aiDecideError}</span>
-          ) : null}
+          <span className={styles.tasteFooterHint}>
+            <Icon name="bolt" size={13} />
+            Resposta em <kbd>~3s</kbd> com base nos critérios escolhidos
+          </span>
+          <div className={styles.tasteFooterActions}>
+            {aiDecideError ? (
+              <span className={styles.tasteError}>{aiDecideError}</span>
+            ) : null}
+            <button
+              type="button"
+              className={styles.tasteCta}
+              disabled={aiDecideLoading}
+              onClick={handleAiDecide}
+            >
+              <Icon name="sparkles" size={14} />
+              <span>{aiDecideLoading ? 'Decidindo…' : 'Decidir agora'}</span>
+            </button>
+          </div>
         </div>
       </section>
 
