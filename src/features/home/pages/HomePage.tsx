@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { recommendRestaurants } from '@/features/chat/services/chatService'
 import type { RestaurantRecommendation } from '@/features/chat/types'
 import { useAddPlace } from '@/features/places/AddPlaceContext'
+import { saveGooglePlace } from '@/features/places/services/googleMapsService'
 import { updatePlace } from '@/features/places/services/placesService'
 import type { Place } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
@@ -153,6 +154,8 @@ const PRICE_SYMBOL: Record<number, string> = {
 
 const SUGGESTION_TAGS = ['Romântico', 'Barzinho', 'Aconchegante'] as const
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 const DEFAULT_LOCATION = {
   latitude: -23.55052,
   longitude: -46.633308,
@@ -290,6 +293,10 @@ function syncHomePlace(home: HomeDashboard, updated: Place, previous?: Place): H
       ? upsertPlace(replacePlace(home.want_to_return, updated), updated)
       : home.want_to_return.filter((item) => item.id !== updated.id),
   }
+}
+
+function isSavedPlaceId(id: string) {
+  return UUID_PATTERN.test(id)
 }
 
 function priceLabel(range: number | null) {
@@ -574,14 +581,32 @@ export function HomePage() {
 
   async function handleToggleFavorite(place: Place) {
     if (favoriteBusyId) return
+    if (!grupo) {
+      setFavoriteError('Selecione um perfil antes de favoritar.')
+      return
+    }
+
     setFavoriteBusyId(place.id)
     setFavoriteError(null)
 
     try {
-      const updated = await updatePlace(place.id, { is_favorite: !place.is_favorite })
+      const googlePlaceId = (place as Partial<TodayRecommendation>).google_place_id ?? null
+      const shouldSaveFromGoogle = !isSavedPlaceId(place.id) && !place.is_favorite
+      const updated = shouldSaveFromGoogle
+        ? await saveGooglePlace(grupo.id, {
+            added_by_profile_id: perfil?.id,
+            is_favorite: true,
+            place_id: googlePlaceId || place.id,
+            status: place.status ?? 'quero_ir',
+          })
+        : await updatePlace(place.id, { is_favorite: !place.is_favorite })
       setHome((current) => (current ? syncHomePlace(current, updated, place) : current))
       setTodaySuggestions((current) =>
-        current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+        current.map((item) =>
+          item.id === place.id || item.id === updated.id
+            ? { ...item, ...updated, google_place_id: googlePlaceId || item.google_place_id }
+            : item,
+        ),
       )
     } catch (err) {
       setFavoriteError(getErrorMessage(err, 'Nao foi possivel atualizar o favorito.'))
