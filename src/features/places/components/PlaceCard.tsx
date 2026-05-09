@@ -1,5 +1,5 @@
 import { Icon } from '@/shared/ui/Icon/Icon'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { updatePlace } from '../services/placesService'
 import { PLACE_STATUS_LABELS, type Place, type PlaceStatus } from '../types'
 import { StatusSwitcher } from './StatusSwitcher'
@@ -25,20 +25,30 @@ const STATUS_TONE: Record<PlaceStatus, string> = {
 }
 
 export function PlaceCard({ onUpdated, place }: PlaceCardProps) {
-  const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [favorite, setFavorite] = useState(place.is_favorite)
   const [status, setStatus] = useState<PlaceStatus>(place.status)
 
+  useEffect(() => {
+    setFavorite(place.is_favorite)
+    setStatus(place.status)
+  }, [place.is_favorite, place.status])
+
   async function handleStatusChange(next: PlaceStatus) {
     if (busy || next === status) return
+    const previous = status
     setStatus(next)
+    setError(null)
     setBusy(true)
     try {
       const updated = await updatePlace(place.id, { status: next })
+      setStatus(updated.status)
+      setFavorite(updated.is_favorite)
       onUpdated?.(updated)
-    } catch {
-      setStatus(place.status)
+    } catch (err) {
+      setStatus(previous)
+      setError(err instanceof Error ? err.message : 'Nao foi possivel atualizar o status.')
     } finally {
       setBusy(false)
     }
@@ -47,13 +57,18 @@ export function PlaceCard({ onUpdated, place }: PlaceCardProps) {
   async function handleToggleFavorite() {
     if (busy) return
     const next = !favorite
+    const previous = favorite
     setFavorite(next)
+    setError(null)
     setBusy(true)
     try {
       const updated = await updatePlace(place.id, { is_favorite: next })
+      setStatus(updated.status)
+      setFavorite(updated.is_favorite)
       onUpdated?.(updated)
-    } catch {
-      setFavorite(!next)
+    } catch (err) {
+      setFavorite(previous)
+      setError(err instanceof Error ? err.message : 'Nao foi possivel atualizar o favorito.')
     } finally {
       setBusy(false)
     }
@@ -102,27 +117,24 @@ export function PlaceCard({ onUpdated, place }: PlaceCardProps) {
           )}
           <button
             className={`${styles.statusChip} ${STATUS_TONE[status]}`}
-            onClick={() => setOpen((value) => !value)}
+            disabled={busy}
             type="button"
           >
             {PLACE_STATUS_LABELS[status]}
           </button>
         </div>
 
-        {open ? (
-          <div className={styles.statusPanel}>
-            <span className={styles.statusPanelLabel}>Atualizar como:</span>
-            <StatusSwitcher
-              disabled={busy}
-              onChange={(next) => {
-                handleStatusChange(next)
-                setOpen(false)
-              }}
-              size="sm"
-              value={status}
-            />
-          </div>
-        ) : null}
+        <div className={styles.statusPanel}>
+          <span className={styles.statusPanelLabel}>Atualizar como:</span>
+          <StatusSwitcher
+            disabled={busy}
+            onChange={handleStatusChange}
+            size="sm"
+            value={status}
+          />
+        </div>
+
+        {error ? <p className={styles.error}>{error}</p> : null}
       </div>
     </article>
   )
