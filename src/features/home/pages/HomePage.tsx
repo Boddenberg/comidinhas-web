@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
 import { recommendRestaurants } from '@/features/chat/services/chatService'
@@ -154,6 +154,21 @@ function getIsDaytime() {
   return hour >= 6 && hour < 18
 }
 
+function getGreeting(date = new Date()) {
+  const hour = date.getHours()
+  if (hour >= 5 && hour < 12) return { label: 'Bom dia', icon: 'sun' as const }
+  if (hour >= 12 && hour < 18) return { label: 'Boa tarde', icon: 'cloud-sun' as const }
+  return { label: 'Boa noite', icon: 'moon' as const }
+}
+
+function getDayLabel(date = new Date()) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'short',
+  }).format(date)
+}
+
 function getAiOptionLabel(menuId: AiMenuId, optionId: string) {
   const menu = aiMenus.find((item) => item.id === menuId)
   const option = menu?.options.find((item) => item.id === optionId)
@@ -276,6 +291,8 @@ export function HomePage() {
   const { open: openAddPlace, registerOnCreated } = useAddPlace()
   const navigate = useNavigate()
 
+  const tasteRef = useRef<HTMLElement | null>(null)
+
   const [home, setHome] = useState<HomeDashboard | null>(null)
   const [homeError, setHomeError] = useState<string | null>(null)
   const [homeLoading, setHomeLoading] = useState(true)
@@ -284,6 +301,7 @@ export function HomePage() {
   const [todaySuggestionsLoading, setTodaySuggestionsLoading] = useState(true)
   const [paraVocesFilter, setParaVocesFilter] = useState<ParaVocesFilter>('todos')
   const [isDaytime, setIsDaytime] = useState(getIsDaytime)
+  const [greeting, setGreeting] = useState(getGreeting)
   const [aiSelections, setAiSelections] = useState<AiSelections>(initialAiSelections)
   const [openAiMenu, setOpenAiMenu] = useState<AiMenuId | null>(null)
   const [aiDecideLoading, setAiDecideLoading] = useState(false)
@@ -292,6 +310,7 @@ export function HomePage() {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setIsDaytime(getIsDaytime())
+      setGreeting(getGreeting())
     }, 1000 * 60)
 
     return () => window.clearInterval(intervalId)
@@ -405,10 +424,6 @@ export function HomePage() {
     }
   }, [grupo, perfil])
 
-  function handleOpenChat() {
-    navigate('/chat')
-  }
-
   async function handleAiDecide() {
     if (!grupo) {
       setAiDecideError('Selecione um perfil antes de pedir a escolha da IA.')
@@ -499,7 +514,15 @@ export function HomePage() {
     setOpenAiMenu(null)
   }
 
+  function handleScrollToTaste() {
+    tasteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const suggestions = todaySuggestions
+  const counters = home?.counters
+  const profileName = grupo?.nome ?? perfil?.nome ?? 'por aí'
+  const cityName = perfil?.cidade?.trim() || 'São Paulo'
+  const dayLabel = getDayLabel()
 
   const paraVocesPlaces = useMemo(() => {
     if (!home) return []
@@ -526,319 +549,363 @@ export function HomePage() {
 
   return (
     <div className={styles.layout}>
-      {/* === Main column === */}
-      <div className={styles.mainCol}>
-        {/* Hero card */}
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <h1 className={styles.heroTitle}>
-              Qual vai ser{' '}
-              <span className={styles.heroHearts} aria-hidden="true">
-                <Icon name="heart-filled" size={26} />
-              </span>
-              <br />o rolê de hoje?
-            </h1>
-            <p className={styles.heroSubtitle}>
-              Descobrimos lugares incríveis<br />com o seu gosto e o clima de agora.
-            </p>
+      {/* === Ambient context strip === */}
+      <section className={styles.ambient} aria-label="Contexto de hoje">
+        <div className={styles.ambientGreeting}>
+          <span className={styles.ambientEyebrow}>
+            <Icon name={greeting.icon} size={14} />
+            {greeting.label}, {profileName}
+          </span>
+          <p className={styles.ambientHint}>
+            Vamos resolver o "onde a gente come hoje?"
+            <Icon name="heart-filled" size={12} className={styles.ambientHintHeart} />
+          </p>
+        </div>
+        <div className={styles.ambientMetrics}>
+          <span className={styles.ambientChip}>
+            <Icon name="pin" size={13} />
+            {cityName}
+          </span>
+          <span className={styles.ambientChip}>
+            <Icon name="cloud-sun" size={13} className={styles.ambientChipWeather} />
+            23°C · céu limpo
+          </span>
+          <span className={`${styles.ambientChip} ${styles.ambientChipDate}`}>
+            <Icon name="calendar" size={13} />
+            {dayLabel}
+          </span>
+        </div>
+      </section>
+
+      {/* === Decision hero === */}
+      <section className={styles.hero} aria-label="Decida o rolê de hoje">
+        <span className={styles.heroAurora} aria-hidden="true" />
+        <span className={styles.heroGrid} aria-hidden="true" />
+        <div className={styles.heroContent}>
+          <span className={styles.heroEyebrow}>
+            <span className={styles.heroEyebrowDot} />
+            IA Decide · powered by Comidinhas
+          </span>
+          <h1 className={styles.heroTitle}>
+            O que vai ser{' '}
+            <span className={styles.heroAccent}>
+              hoje
+              <Icon name="heart-filled" size={32} className={styles.heroHeart} />
+            </span>
+            ?
+          </h1>
+          <p className={styles.heroLead}>
+            A gente escolhe um restaurante real para vocês em segundos, com base no humor,
+            no clima e no jeito do casal.
+          </p>
+          <div className={styles.heroActions}>
             <button
               type="button"
-              className={styles.heroCta}
-              onClick={handleOpenChat}
+              className={styles.heroPrimary}
+              disabled={aiDecideLoading}
+              onClick={handleAiDecide}
             >
-              <Icon name="sparkles" size={15} />
-              <span>Surpreenda a gente, IA!</span>
-              <Icon name="arrow-right" size={15} />
+              <Icon name="sparkles" size={16} />
+              <span>{aiDecideLoading ? 'Decidindo…' : 'Surpreender com IA'}</span>
+              <Icon name="arrow-right" size={16} className={styles.heroPrimaryArrow} />
+            </button>
+            <button
+              type="button"
+              className={styles.heroSecondary}
+              onClick={handleScrollToTaste}
+            >
+              <span>Ajustar critérios</span>
+              <Icon name="chevron-down" size={14} />
             </button>
           </div>
-          <div className={styles.heroIllustration} aria-hidden="true">
-            {/* Placeholder for the central banner illustration */}
-            <div className={styles.heroPlaceholder}>
-              <span>Imagem do banner central</span>
+          {aiDecideError ? (
+            <p className={styles.heroError}>{aiDecideError}</p>
+          ) : null}
+          <dl className={styles.heroStats} aria-label="Resumo dos lugares salvos">
+            <div className={styles.heroStat}>
+              <dt>Lugares salvos</dt>
+              <dd>{counters?.total_places ?? '—'}</dd>
             </div>
-          </div>
-          <span className={styles.heroSign} aria-hidden="true">
-            <span className={styles.heroSignText}>
-              boa <strong>comida</strong>
-              <br />
-              <em>bons momentos</em>
+            <span className={styles.heroStatDivider} aria-hidden="true" />
+            <div className={styles.heroStat}>
+              <dt>Favoritos</dt>
+              <dd>
+                {counters?.total_favorites ?? '—'}
+                <Icon name="heart-filled" size={14} className={styles.heroStatIcon} />
+              </dd>
+            </div>
+            <span className={styles.heroStatDivider} aria-hidden="true" />
+            <div className={styles.heroStat}>
+              <dt>Quero ir</dt>
+              <dd>
+                {counters?.total_want_to_go ?? '—'}
+                <Icon name="bookmark-filled" size={13} className={styles.heroStatIcon} />
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      {/* === Taste / IA Decide filters (styled in next commit) === */}
+      <section
+        className={styles.tasteSection}
+        aria-label="Critérios da IA"
+        ref={tasteRef}
+      >
+        <header className={styles.tasteHeader}>
+          <div className={styles.tasteHeaderText}>
+            <span className={styles.sectionEyebrow}>
+              <Icon name="sparkles" size={12} />
+              Critérios
             </span>
-          </span>
-        </section>
+            <h2 className={styles.sectionTitle}>Diga pra IA o que combina hoje</h2>
+            <p className={styles.sectionMuted}>
+              Toque em qualquer card para ajustar — quanto mais aberto, mais sugestões.
+            </p>
+          </div>
+        </header>
 
-        {/* Combina com hoje */}
-        <section className={styles.suggestSection}>
-          <header className={styles.suggestHeader}>
-            <div className={styles.sectionLabel}>
-              <span className={styles.sparkAccent}>
-                <Icon name="sparkles" size={14} />
-              </span>
-              <div>
-                <h2 className={styles.sectionTitle}>Combina com hoje</h2>
-                <p className={styles.sectionMuted}>
-                  Sugestões especiais para o clima e seu humor
-                </p>
-              </div>
-            </div>
-          </header>
+        <div className={styles.aiTilesGrid}>
+          {aiMenus.map((menu) => {
+            const visibleOptions =
+              menu.id === 'lugar' && !hasFavoritePlaces
+                ? menu.options.filter((option) => option.id !== 'curtidos')
+                : menu.options
+            const selectedOption =
+              visibleOptions.find((option) => option.id === aiSelections[menu.id]) ??
+              visibleOptions[0]
+            const isOpen = openAiMenu === menu.id
 
-          <div className={styles.suggestRow}>
-            {todaySuggestionsLoading
-              ? Array.from({ length: 3 }).map((_, idx) => (
-                  <article key={`sk-${idx}`} className={`${styles.suggestCard} ${styles.skeletonCard}`} aria-hidden="true">
-                    <span className={styles.suggestThumb} />
-                    <div className={styles.suggestBody}>
-                      <span className={styles.skeletonLine} />
-                      <span className={styles.skeletonLineShort} />
-                    </div>
-                  </article>
-                ))
-              : todaySuggestionsError
-                ? (
-                    <p className={styles.suggestEmpty}>
-                      {todaySuggestionsError}
-                    </p>
-                  )
-                : suggestions.length === 0
-                ? (
-                    <button
-                      type="button"
-                      className={styles.suggestEmpty}
-                      onClick={() => openAddPlace()}
-                    >
-                      <Icon name="plus" size={18} />
-                      Adicionar o primeiro lugar
-                    </button>
-                  )
-                : suggestions.map((place, idx) => (
-                    <SuggestionCard key={place.id} place={place} index={idx} />
-                  ))}
-
-            {suggestions.length > 0 ? (
-              <button
-                type="button"
-                className={styles.suggestNext}
-                aria-label="Ver mais sugestões"
-                onClick={() => navigate('/lugares')}
+            return (
+              <div
+                key={menu.id}
+                className={`${styles.aiMenu} ${styles[`aiMenu_${menu.tone}`]} ${
+                  isOpen ? styles.aiMenuOpen : ''
+                }`}
               >
-                <Icon name="chevron-right" size={18} />
-              </button>
-            ) : null}
-          </div>
+                <button
+                  type="button"
+                  className={styles.aiMenuButton}
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenAiMenu(isOpen ? null : menu.id)}
+                >
+                  <span className={styles.aiTileLabel}>{menu.label}</span>
+                  <span className={styles.aiTileValue}>
+                    {selectedOption.label}{' '}
+                    <span className={styles.aiTileEmoji}>{selectedOption.emoji}</span>
+                  </span>
+                  <Icon name="chevron-down" size={14} className={styles.aiMenuChevron} />
+                </button>
 
-          <div className={styles.suggestFooter}>
-            <Link to="/lugares" className={styles.sectionLink}>
-              Ver todas
-            </Link>
-          </div>
-        </section>
+                {isOpen ? (
+                  <div className={styles.aiOptionsPanel}>
+                    {visibleOptions.map((option) => {
+                      const isSelected = option.id === selectedOption.id
 
-        {/* Para vocês */}
-        <section className={styles.paraVocesSection}>
-          <header className={styles.paraVocesHeader}>
-            <div>
-              <h2 className={styles.sectionTitle}>
-                Para vocês <span className={styles.titleHeart} aria-hidden="true"></span>
-              </h2>
-              <p className={styles.sectionMuted}>
-                Lugares que combinam com o perfil de vocês
-              </p>
-            </div>
-            <div className={styles.paraVocesControls}>
-              <div className={styles.filterTabs} role="tablist">
-                {PARA_VOCES_FILTERS.map((option) => (
-                  <button
-                    key={option.id}
-                    role="tab"
-                    type="button"
-                    aria-selected={paraVocesFilter === option.id}
-                    className={`${styles.filterTab} ${
-                      paraVocesFilter === option.id ? styles.filterTabActive : ''
-                    }`}
-                    onClick={() => setParaVocesFilter(option.id)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={`${styles.aiOptionChip} ${
+                            isSelected ? styles.aiOptionChipSelected : ''
+                          }`}
+                          aria-pressed={isSelected}
+                          onClick={() => handleAiSelection(menu.id, option.id)}
+                        >
+                          {isSelected ? (
+                            <Icon name="check" size={11} className={styles.aiOptionCheck} />
+                          ) : null}
+                          <span>{option.label}</span>
+                          <span className={styles.aiOptionEmoji}>{option.emoji}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : null}
               </div>
-              <Link to="/lugares" className={styles.sectionLink}>
-                Ver todos
-              </Link>
-            </div>
-          </header>
+            )
+          })}
+        </div>
 
-          {homeError ? (
-            <p className={styles.emptyState}>{homeError}</p>
-          ) : homeLoading ? (
-            <div className={styles.placesGrid}>
-              {Array.from({ length: 4 }).map((_, idx) => (
+        <div className={styles.tasteFooter}>
+          <button
+            type="button"
+            className={styles.tasteCta}
+            disabled={aiDecideLoading}
+            onClick={handleAiDecide}
+          >
+            <Icon name="sparkles" size={14} />
+            <span>{aiDecideLoading ? 'Decidindo…' : 'Decidir agora'}</span>
+          </button>
+          {aiDecideError ? (
+            <span className={styles.tasteError}>{aiDecideError}</span>
+          ) : null}
+        </div>
+      </section>
+
+      {/* === Combina com hoje === */}
+      <section className={styles.suggestSection} aria-label="Sugestões de hoje">
+        <header className={styles.suggestHeader}>
+          <div>
+            <span className={styles.sectionEyebrow}>
+              <Icon name="sparkles" size={12} />
+              Combina com hoje
+            </span>
+            <h2 className={styles.sectionTitle}>Sugestões para o clima e seu humor</h2>
+          </div>
+          <Link to="/lugares" className={styles.sectionLink}>
+            Ver todas <Icon name="arrow-right" size={14} />
+          </Link>
+        </header>
+
+        <div className={styles.suggestRow}>
+          {todaySuggestionsLoading
+            ? Array.from({ length: 3 }).map((_, idx) => (
                 <article
-                  key={`sk-pv-${idx}`}
-                  className={`${styles.placeCard} ${styles.skeletonCard}`}
+                  key={`sk-${idx}`}
+                  className={`${styles.suggestCard} ${styles.skeletonCard}`}
                   aria-hidden="true"
                 >
-                  <span className={styles.placeThumb} />
-                  <div className={styles.placeBody}>
+                  <span className={styles.suggestThumb} />
+                  <div className={styles.suggestBody}>
                     <span className={styles.skeletonLine} />
                     <span className={styles.skeletonLineShort} />
                   </div>
                 </article>
-              ))}
-            </div>
-          ) : paraVocesPlaces.length === 0 ? (
-            <p className={styles.emptyState}>
-              Nenhum lugar criado neste perfil ainda.
-            </p>
-          ) : (
-            <div className={styles.placesGrid}>
-              {paraVocesPlaces.map((place, idx) => (
-                <ParaVocesCard key={place.id} place={place} index={idx} />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* === Side column === */}
-      <aside className={styles.sideCol}>
-        {/* IA Decide para vocês */}
-        <section className={styles.aiCard}>
-          <header className={styles.aiCardHeader}>
-            <span className={styles.aiCardTitle}>
-              <span className={styles.sparkAccent}>
-                <Icon name="sparkles" size={13} />
-              </span>
-              IA Decide para vocês
-            </span>
-            <Icon name="heart-filled" size={14} className={styles.aiCardHeart} />
-          </header>
-
-          <div className={styles.aiTilesGrid}>
-            {aiMenus.map((menu) => {
-              const visibleOptions =
-                menu.id === 'lugar' && !hasFavoritePlaces
-                  ? menu.options.filter((option) => option.id !== 'curtidos')
-                  : menu.options
-              const selectedOption =
-                visibleOptions.find((option) => option.id === aiSelections[menu.id]) ??
-                visibleOptions[0]
-              const isOpen = openAiMenu === menu.id
-
-              return (
-                <div
-                  key={menu.id}
-                  className={`${styles.aiMenu} ${styles[`aiMenu_${menu.tone}`]} ${
-                    isOpen ? styles.aiMenuOpen : ''
-                  }`}
-                >
+              ))
+            : todaySuggestionsError
+              ? (
+                  <p className={styles.suggestEmpty}>
+                    {todaySuggestionsError}
+                  </p>
+                )
+              : suggestions.length === 0
+              ? (
                   <button
                     type="button"
-                    className={styles.aiMenuButton}
-                    aria-expanded={isOpen}
-                    onClick={() => setOpenAiMenu(isOpen ? null : menu.id)}
+                    className={styles.suggestEmpty}
+                    onClick={() => openAddPlace()}
                   >
-                    <span className={styles.aiTileLabel}>{menu.label}</span>
-                    <span className={styles.aiTileValue}>
-                      {selectedOption.label}{' '}
-                      <span className={styles.aiTileEmoji}>{selectedOption.emoji}</span>
-                    </span>
-                    <Icon name="chevron-down" size={14} className={styles.aiMenuChevron} />
+                    <Icon name="plus" size={18} />
+                    Adicionar o primeiro lugar
                   </button>
-
-                  {isOpen ? (
-                    <div className={styles.aiOptionsPanel}>
-                      {visibleOptions.map((option) => {
-                        const isSelected = option.id === selectedOption.id
-
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            className={`${styles.aiOptionChip} ${
-                              isSelected ? styles.aiOptionChipSelected : ''
-                            }`}
-                            aria-pressed={isSelected}
-                            onClick={() => handleAiSelection(menu.id, option.id)}
-                          >
-                            {isSelected ? (
-                              <Icon name="check" size={11} className={styles.aiOptionCheck} />
-                            ) : null}
-                            <span>{option.label}</span>
-                            <span className={styles.aiOptionEmoji}>{option.emoji}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-              )
-            })}
-          </div>
-
-          <button
-            type="button"
-            className={styles.aiCardButton}
-            disabled={aiDecideLoading}
-            onClick={handleAiDecide}
-          >
-            <span>{aiDecideLoading ? 'Decidindo...' : 'Decidir agora'}</span>
-            <Icon name="sparkles" size={14} />
-          </button>
-
-          {aiDecideError ? (
-            <p className={styles.aiCardError}>{aiDecideError}</p>
-          ) : null}
-
-        </section>
-
-        {/* Discover area */}
-        <div className={styles.discoverGrid}>
-          <section className={styles.mapCard}>
-            <div className={styles.mapPreview} aria-hidden="true">
-              <img className={styles.mapPreviewImage} alt="" src={mapPreviewImage} />
-            </div>
-            <div className={styles.mapBody}>
-              <div className={styles.mapTitle}>
-                <span className={styles.mapPinIcon}>
-                  <Icon name="pin" size={14} />
-                </span>
-                <strong>Descubra por perto</strong>
-              </div>
-              <p className={styles.mapMuted}>Vila Madalena, Pinheiros e arredores</p>
-              <button
-                type="button"
-                className={styles.mapButton}
-                onClick={() => navigate('/explorar')}
-              >
-                Explorar no mapa <Icon name="arrow-right" size={14} />
-              </button>
-            </div>
-          </section>
-
-          <section className={styles.weatherCard}>
-            <img
-              alt=""
-              aria-hidden="true"
-              className={styles.weatherBackdrop}
-              src={isDaytime ? weatherDayImage : weatherNightImage}
-            />
-            <p className={styles.weatherLabel}>Clima agora em São Paulo</p>
-            <strong className={styles.weatherTemp}>23°C</strong>
-            <p className={styles.weatherDescription}>Céu limpo com<br />vento leve</p>
-          </section>
-
-          <section className={styles.googleMapsCard}>
-            <div className={styles.googleMapsCopy}>
-              <strong>Salvar no</strong>
-              <strong>Google Maps</strong>
-            </div>
-            <span className={styles.googleMapsIcon} aria-hidden="true">
-              <img alt="" src={googleMapsSaveImage} />
-            </span>
-          </section>
+                )
+              : suggestions.map((place, idx) => (
+                  <SuggestionCard key={place.id} place={place} index={idx} />
+                ))}
         </div>
+      </section>
 
-      </aside>
+      {/* === Discover row (map / weather / google maps) === */}
+      <section className={styles.discoverGrid} aria-label="Atalhos rápidos">
+        <article className={styles.mapCard}>
+          <div className={styles.mapPreview} aria-hidden="true">
+            <img className={styles.mapPreviewImage} alt="" src={mapPreviewImage} />
+          </div>
+          <div className={styles.mapBody}>
+            <div className={styles.mapTitle}>
+              <span className={styles.mapPinIcon}>
+                <Icon name="pin" size={14} />
+              </span>
+              <strong>Descubra por perto</strong>
+            </div>
+            <p className={styles.mapMuted}>Vila Madalena, Pinheiros e arredores</p>
+            <button
+              type="button"
+              className={styles.mapButton}
+              onClick={() => navigate('/explorar')}
+            >
+              Explorar no mapa <Icon name="arrow-right" size={14} />
+            </button>
+          </div>
+        </article>
+
+        <article className={styles.weatherCard}>
+          <img
+            alt=""
+            aria-hidden="true"
+            className={styles.weatherBackdrop}
+            src={isDaytime ? weatherDayImage : weatherNightImage}
+          />
+          <p className={styles.weatherLabel}>Clima agora em {cityName}</p>
+          <strong className={styles.weatherTemp}>23°C</strong>
+          <p className={styles.weatherDescription}>Céu limpo com vento leve</p>
+        </article>
+
+        <article className={styles.googleMapsCard}>
+          <div className={styles.googleMapsCopy}>
+            <strong>Salvar no</strong>
+            <strong>Google Maps</strong>
+          </div>
+          <span className={styles.googleMapsIcon} aria-hidden="true">
+            <img alt="" src={googleMapsSaveImage} />
+          </span>
+        </article>
+      </section>
+
+      {/* === Para vocês === */}
+      <section className={styles.paraVocesSection} aria-label="Lugares para vocês">
+        <header className={styles.paraVocesHeader}>
+          <div>
+            <span className={styles.sectionEyebrow}>
+              <Icon name="heart-filled" size={11} />
+              Para vocês
+            </span>
+            <h2 className={styles.sectionTitle}>Lugares que combinam com o perfil</h2>
+          </div>
+          <div className={styles.paraVocesControls}>
+            <div className={styles.filterTabs} role="tablist">
+              {PARA_VOCES_FILTERS.map((option) => (
+                <button
+                  key={option.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={paraVocesFilter === option.id}
+                  className={`${styles.filterTab} ${
+                    paraVocesFilter === option.id ? styles.filterTabActive : ''
+                  }`}
+                  onClick={() => setParaVocesFilter(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <Link to="/lugares" className={styles.sectionLink}>
+              Ver todos <Icon name="arrow-right" size={14} />
+            </Link>
+          </div>
+        </header>
+
+        {homeError ? (
+          <p className={styles.emptyState}>{homeError}</p>
+        ) : homeLoading ? (
+          <div className={styles.placesGrid}>
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <article
+                key={`sk-pv-${idx}`}
+                className={`${styles.placeCard} ${styles.skeletonCard}`}
+                aria-hidden="true"
+              >
+                <span className={styles.placeThumb} />
+                <div className={styles.placeBody}>
+                  <span className={styles.skeletonLine} />
+                  <span className={styles.skeletonLineShort} />
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : paraVocesPlaces.length === 0 ? (
+          <p className={styles.emptyState}>
+            Nenhum lugar criado neste perfil ainda.
+          </p>
+        ) : (
+          <div className={styles.placesGrid}>
+            {paraVocesPlaces.map((place, idx) => (
+              <ParaVocesCard key={place.id} place={place} index={idx} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
@@ -951,4 +1018,3 @@ function ParaVocesCard({ place, index }: { place: Place; index: number }) {
     </article>
   )
 }
-
