@@ -1069,222 +1069,162 @@
 }
 
 /* ============================================================
-   Discover row
+   Atalhos quick-access shortcuts
    ============================================================ */
 
-.discoverGrid {
+.shortcutsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.shortcutsHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.shortcutsGrid {
   display: grid;
   gap: 0.85rem;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
-}
-
-.mapCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-xl);
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  overflow: hidden;
-  padding: 0.7rem;
-}
-
-.mapPreview {
-  border-radius: 14px;
-  flex: 1 1 auto;
-  min-height: 9rem;
-  overflow: hidden;
-  position: relative;
-}
-
-.mapPreviewImage {
-  height: 100%;
-  object-fit: cover;
-  width: 100%;
-}
-
-.mapBody {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.45rem 0.6rem 0.5rem;
-}
-
-.mapTitle {
-  align-items: center;
-  display: flex;
-  gap: 0.4rem;
-}
-
-.mapTitle strong {
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: 0.96rem;
-  font-weight: 700;
-  letter-spacing: -0.018em;
-}
-
-.mapPinIcon {
-  color: var(--color-heart);
-}
-
-.mapMuted {
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
-.mapButton {
-  align-items: center;
-  align-self: flex-start;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line-strong);
-  border-radius: 999px;
-  color: var(--color-text);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 0.82rem;
-  font-weight: 600;
-  gap: 0.35rem;
-  margin-top: 0.3rem;
-  padding: 0.55rem 1rem;
-  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
-}
-
-.mapButton:hover {
-  background: var(--color-primary-soft);
-  border-color: rgba(79, 70, 229, 0.32);
-  color: var(--color-primary);
-}
-
-.weatherCard {
-  background: #172554;
-  border-radius: var(--radius-xl);
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  isolation: isolate;
-  min-height: 11rem;
-  overflow: hidden;
-  padding: 1.05rem 1.2rem 1.15rem;
-  position: relative;
-}
-
-.weatherCard::before {
-  background:
-    linear-gradient(120deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.25) 70%),
-    linear-gradient(0deg, rgba(15, 23, 42, 0.32), transparent 60%);
-  content: '';
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
-  z-index: 1;
-}
-
-.weatherBackdrop {
-  height: 100%;
-  inset: 0;
-  object-fit: cover;
-  object-position: 100% center;
-  position: absolute;
-  transform: scale(1.3);
-  width: 100%;
-  z-index: 0;
-}
-
-.weatherLabel {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.78rem;
-  font-weight: 500;
-  position: relative;
-  text-shadow: 0 1px 8px rgba(15, 23, 42, 0.45);
-  z-index: 2;
-}
-
-.weatherTemp {
-  color: #ffffff;
-  font-family: var(--font-display);
-  font-size: 2.2rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  margin-top: 0.55rem;
-  position: relative;
-  text-shadow: 0 2px 10px rgba(15, 23, 42, 0.45);
-  z-index: 2;
-}
-
-.weatherDescription {
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 0.78rem;
-  line-height: 1.35;
-  margin-top: 0.3rem;
-  position: relative;
-  text-shadow: 0 1px 8px rgba(15, 23, 42, 0.45);
-  z-index: 2;
-}
-
-.googleMapsCard {
-  align-items: center;
-  background: #fb7186;
-  border-radius: var(--radius-xl);
-  display: flex;
-  gap: 0.7rem;
-  justify-content: space-between;
-  min-height: 11rem;
-  overflow: hidden;
-  padding: 1rem 1.15rem;
-  position: relative;
-}
-
-.googleMapsCopy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-  position: relative;
-  z-index: 2;
-}
-
-.googleMapsCopy strong {
-  color: #17324d;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.65);
-}
-
-.googleMapsIcon {
-  align-items: center;
-  display: inline-flex;
-  inset: 0;
-  position: absolute;
-  z-index: 1;
-}
-
-.googleMapsIcon img {
-  height: 100%;
-  object-fit: cover;
-  object-position: 100% center;
-  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 @media (max-width: 980px) {
-  .discoverGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .mapCard {
-    grid-column: 1 / -1;
+  .shortcutsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 540px) {
-  .discoverGrid {
+  .shortcutsGrid {
     grid-template-columns: 1fr;
   }
+}
+
+.shortcutCard {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--color-shadow-sm);
+  cursor: pointer;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  isolation: isolate;
+  min-height: 5.4rem;
+  overflow: hidden;
+  padding: 1rem 1.1rem;
+  position: relative;
+  text-align: left;
+  transition: transform 220ms var(--ease-out-expo), box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.shortcutCard:hover {
+  border-color: rgba(79, 70, 229, 0.22);
+  box-shadow: var(--color-shadow-md);
+  transform: translateY(-3px);
+}
+
+.shortcutCard:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.shortcutBackdrop {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  opacity: 0.18;
+  position: absolute;
+  transition: opacity 220ms ease, transform 600ms var(--ease-out-expo);
+  width: 100%;
+  z-index: -1;
+}
+
+.shortcutCard:hover .shortcutBackdrop {
+  opacity: 0.32;
+  transform: scale(1.05);
+}
+
+.shortcutIcon {
+  align-items: center;
+  background: var(--gradient-ai);
+  border-radius: 14px;
+  box-shadow: 0 10px 22px rgba(236, 72, 153, 0.28);
+  color: #ffffff;
+  display: inline-flex;
+  height: 2.6rem;
+  justify-content: center;
+  position: relative;
+  width: 2.6rem;
+}
+
+.shortcutBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  position: relative;
+}
+
+.shortcutBody strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shortcutBody span {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.shortcutArrow {
+  align-items: center;
+  background: var(--color-bg-soft);
+  border-radius: 999px;
+  color: var(--color-text);
+  display: inline-flex;
+  height: 1.85rem;
+  justify-content: center;
+  position: relative;
+  transition: background-color 160ms ease, color 160ms ease, transform 200ms var(--ease-spring);
+  width: 1.85rem;
+}
+
+.shortcutCard:hover .shortcutArrow {
+  background: var(--color-text);
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+.shortcutCard_explore .shortcutIcon {
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.32);
+}
+
+.shortcutCard_favorites .shortcutIcon {
+  background: linear-gradient(135deg, #f43f5e 0%, #db2777 100%);
+  box-shadow: 0 10px 22px rgba(244, 63, 94, 0.32);
+}
+
+.shortcutCard_wishlist .shortcutIcon {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  box-shadow: 0 10px 22px rgba(245, 158, 11, 0.32);
+}
+
+.shortcutCard_chat .shortcutIcon {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  box-shadow: 0 10px 22px rgba(139, 92, 246, 0.32);
 }
 
 /* ============================================================

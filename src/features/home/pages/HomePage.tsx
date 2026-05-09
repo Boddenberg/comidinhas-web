@@ -7,10 +7,7 @@ import { useAddPlace } from '@/features/places/AddPlaceContext'
 import type { Place } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
-import weatherDayImage from '../../../../dia.png'
-import weatherNightImage from '../../../../noite.png'
 import mapPreviewImage from '../../../../imagem horizontal maps.png'
-import googleMapsSaveImage from '../../../../imagem salvar google maps.png'
 import { fetchHome, type HomeDashboard } from '../services/homeService'
 import {
   fetchTodayRecommendations,
@@ -147,11 +144,6 @@ const SUGGESTION_TAGS = ['Romântico', 'Barzinho', 'Aconchegante'] as const
 const DEFAULT_LOCATION = {
   latitude: -23.55052,
   longitude: -46.633308,
-}
-
-function getIsDaytime() {
-  const hour = new Date().getHours()
-  return hour >= 6 && hour < 18
 }
 
 function getGreeting(date = new Date()) {
@@ -300,7 +292,6 @@ export function HomePage() {
   const [todaySuggestionsError, setTodaySuggestionsError] = useState<string | null>(null)
   const [todaySuggestionsLoading, setTodaySuggestionsLoading] = useState(true)
   const [paraVocesFilter, setParaVocesFilter] = useState<ParaVocesFilter>('todos')
-  const [isDaytime, setIsDaytime] = useState(getIsDaytime)
   const [greeting, setGreeting] = useState(getGreeting)
   const [aiSelections, setAiSelections] = useState<AiSelections>(initialAiSelections)
   const [openAiMenu, setOpenAiMenu] = useState<AiMenuId | null>(null)
@@ -309,7 +300,6 @@ export function HomePage() {
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      setIsDaytime(getIsDaytime())
       setGreeting(getGreeting())
     }, 1000 * 60)
 
@@ -813,51 +803,92 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* === Discover row (map / weather / google maps) === */}
-      <section className={styles.discoverGrid} aria-label="Atalhos rápidos">
-        <article className={styles.mapCard}>
-          <div className={styles.mapPreview} aria-hidden="true">
-            <img className={styles.mapPreviewImage} alt="" src={mapPreviewImage} />
+      {/* === Atalhos rápidos === */}
+      <section className={styles.shortcutsSection} aria-label="Atalhos rápidos">
+        <header className={styles.shortcutsHeader}>
+          <div>
+            <span className={styles.sectionEyebrow}>
+              <Icon name="bolt" size={11} />
+              Atalhos
+            </span>
+            <h2 className={styles.sectionTitle}>Outras formas de decidir</h2>
           </div>
-          <div className={styles.mapBody}>
-            <div className={styles.mapTitle}>
-              <span className={styles.mapPinIcon}>
-                <Icon name="pin" size={14} />
-              </span>
-              <strong>Descubra por perto</strong>
-            </div>
-            <p className={styles.mapMuted}>Vila Madalena, Pinheiros e arredores</p>
-            <button
-              type="button"
-              className={styles.mapButton}
-              onClick={() => navigate('/explorar')}
-            >
-              Explorar no mapa <Icon name="arrow-right" size={14} />
-            </button>
-          </div>
-        </article>
+        </header>
+        <div className={styles.shortcutsGrid}>
+          <button
+            type="button"
+            className={`${styles.shortcutCard} ${styles.shortcutCard_explore}`}
+            onClick={() => navigate('/explorar')}
+          >
+            <span className={styles.shortcutIcon}>
+              <Icon name="compass" size={20} />
+            </span>
+            <span className={styles.shortcutBody}>
+              <strong>Por perto</strong>
+              <span>Restaurantes ao redor de vocês</span>
+            </span>
+            <span className={styles.shortcutArrow}>
+              <Icon name="arrow-right" size={14} />
+            </span>
+            <img
+              alt=""
+              aria-hidden="true"
+              className={styles.shortcutBackdrop}
+              src={mapPreviewImage}
+            />
+          </button>
 
-        <article className={styles.weatherCard}>
-          <img
-            alt=""
-            aria-hidden="true"
-            className={styles.weatherBackdrop}
-            src={isDaytime ? weatherDayImage : weatherNightImage}
-          />
-          <p className={styles.weatherLabel}>Clima agora em {cityName}</p>
-          <strong className={styles.weatherTemp}>23°C</strong>
-          <p className={styles.weatherDescription}>Céu limpo com vento leve</p>
-        </article>
+          <button
+            type="button"
+            className={`${styles.shortcutCard} ${styles.shortcutCard_favorites}`}
+            onClick={() => navigate('/favoritos')}
+          >
+            <span className={styles.shortcutIcon}>
+              <Icon name="heart-filled" size={20} />
+            </span>
+            <span className={styles.shortcutBody}>
+              <strong>Favoritos</strong>
+              <span>Os que vocês mais curtiram</span>
+            </span>
+            <span className={styles.shortcutArrow}>
+              <Icon name="arrow-right" size={14} />
+            </span>
+          </button>
 
-        <article className={styles.googleMapsCard}>
-          <div className={styles.googleMapsCopy}>
-            <strong>Salvar no</strong>
-            <strong>Google Maps</strong>
-          </div>
-          <span className={styles.googleMapsIcon} aria-hidden="true">
-            <img alt="" src={googleMapsSaveImage} />
-          </span>
-        </article>
+          <button
+            type="button"
+            className={`${styles.shortcutCard} ${styles.shortcutCard_wishlist}`}
+            onClick={() => navigate('/lugares')}
+          >
+            <span className={styles.shortcutIcon}>
+              <Icon name="bookmark-filled" size={20} />
+            </span>
+            <span className={styles.shortcutBody}>
+              <strong>Quero ir</strong>
+              <span>Lista de desejos do casal</span>
+            </span>
+            <span className={styles.shortcutArrow}>
+              <Icon name="arrow-right" size={14} />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.shortcutCard} ${styles.shortcutCard_chat}`}
+            onClick={() => navigate('/chat')}
+          >
+            <span className={styles.shortcutIcon}>
+              <Icon name="robot" size={20} />
+            </span>
+            <span className={styles.shortcutBody}>
+              <strong>Conversar com a IA</strong>
+              <span>Decida em formato de chat</span>
+            </span>
+            <span className={styles.shortcutArrow}>
+              <Icon name="arrow-right" size={14} />
+            </span>
+          </button>
+        </div>
       </section>
 
       {/* === Para vocês === */}
