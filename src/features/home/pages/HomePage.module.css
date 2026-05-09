@@ -12,6 +12,57 @@
   width: 100%;
 }
 
+.layout button:focus-visible,
+.layout a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.layout > section {
+  animation: fadeInUp 600ms var(--ease-out-expo) both;
+}
+
+.layout > section:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.layout > section:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.layout > section:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.layout > section:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.layout > section:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+.layout > section:nth-child(6) {
+  animation-delay: 300ms;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout > section {
+    animation: none;
+  }
+}
+
 /* ============================================================
    Section title primitives
    ============================================================ */
@@ -180,6 +231,16 @@
   pointer-events: none;
   position: absolute;
   z-index: 0;
+  animation: auroraShift 16s ease-in-out infinite;
+}
+
+@keyframes auroraShift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -1%, 0) scale(1.05);
+  }
 }
 
 .heroGrid {
@@ -251,8 +312,32 @@
 }
 
 .heroHeart {
+  animation: heartFloat 3.4s var(--ease-out-expo) infinite;
   color: #fb7185;
   filter: drop-shadow(0 4px 14px rgba(244, 63, 94, 0.6));
+}
+
+@keyframes heartFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(-4deg) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) rotate(4deg) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroHeart {
+    animation: none;
+  }
+
+  .heroAurora {
+    animation: none;
+  }
+
+  .suggestPulseDot {
+    animation: none;
+  }
 }
 
 .heroLead {
