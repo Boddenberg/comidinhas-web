@@ -4,11 +4,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { recommendRestaurants } from '@/features/chat/services/chatService'
 import type { RestaurantRecommendation } from '@/features/chat/types'
 import { useAddPlace } from '@/features/places/AddPlaceContext'
-import {
-  PLACE_STATUS_LABELS,
-  type Place,
-  type PlaceStatus,
-} from '@/features/places/types'
+import type { Place } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
 import weatherDayImage from '../../../../dia.png'
@@ -212,20 +208,6 @@ function buildFallbackGoogleQuery(
   parts.push(city?.trim() || 'São Paulo')
 
   return parts.join(' ')
-}
-
-function formatRelativeTime(iso: string) {
-  if (!iso) return ''
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  const diffMs = Date.now() - date.getTime()
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  if (days <= 0) return 'hoje'
-  if (days === 1) return 'há 1 dia'
-  if (days < 30) return `há ${days} dias`
-  const months = Math.floor(days / 30)
-  if (months === 1) return 'há 1 mês'
-  return `há ${months} meses`
 }
 
 function uniquePlaces(...lists: Place[][]) {
@@ -542,17 +524,6 @@ export function HomePage() {
     return pool.slice(0, 4)
   }, [home, paraVocesFilter])
 
-  const recentActivity = useMemo(() => {
-    if (!home) return []
-    return home.latest_places.slice(0, 3).map((place) => ({
-      id: place.id,
-      image: place.image_url,
-      name: place.name,
-      status: place.status,
-      when: formatRelativeTime(place.updated_at ?? place.created_at ?? ''),
-    }))
-  }, [home])
-
   return (
     <div className={styles.layout}>
       {/* === Main column === */}
@@ -867,51 +838,6 @@ export function HomePage() {
           </section>
         </div>
 
-        {/* Atividade recente */}
-        <section className={styles.activityCard}>
-          <header className={styles.activityHeader}>
-            <h2 className={styles.activityTitle}>Atividade recente</h2>
-            <Link to="/lugares" className={styles.sectionLinkSmall}>
-              Ver tudo <Icon name="arrow-right" size={12} />
-            </Link>
-          </header>
-
-          {recentActivity.length === 0 ? (
-            <p className={styles.activityEmpty}>
-              Nenhuma atividade ainda. Comecem adicionando lugares.
-            </p>
-          ) : (
-            <ul className={styles.activityList}>
-              {recentActivity.map((item) => (
-                <li key={item.id} className={styles.activityItem}>
-                  <span className={styles.activityThumb} aria-hidden="true">
-                    {item.image ? <img alt="" src={item.image} /> : null}
-                  </span>
-                  <div className={styles.activityBody}>
-                    <span className={styles.activityText}>
-                      {PLACE_STATUS_LABELS[item.status as PlaceStatus]} – {item.name}
-                    </span>
-                    <span className={styles.activityWhen}>{item.when}</span>
-                  </div>
-                  <span className={styles.activityIcon} aria-hidden="true">
-                    <Icon
-                      name={item.status === 'fomos' ? 'bookmark-filled' : 'heart-filled'}
-                      size={14}
-                    />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <button
-            type="button"
-            className={styles.activityButton}
-            onClick={() => navigate('/lugares')}
-          >
-            Ver todas as atividades
-          </button>
-        </section>
       </aside>
     </div>
   )
