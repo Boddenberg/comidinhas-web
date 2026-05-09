@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
 import { recommendRestaurants } from '@/features/chat/services/chatService'
@@ -14,6 +14,17 @@ import {
   type TodayRecommendation,
 } from '../services/todayRecommendationsService'
 import styles from './HomePage.module.css'
+
+const heroBannerImageModules = import.meta.glob<string>(
+  '../../../../fotos banner principal/*.{png,jpg,jpeg,webp}',
+  {
+    eager: true,
+    import: 'default',
+    query: '?url',
+  },
+)
+
+const heroBannerImages = Object.values(heroBannerImageModules)
 
 const aiMenus = [
   {
@@ -583,6 +594,22 @@ export function HomePage() {
 
       {/* === Decision hero === */}
       <section className={styles.hero} aria-label="Decida o rolê de hoje">
+        <div className={styles.heroBannerPhotos} aria-hidden="true">
+          {heroBannerImages.map((src, index) => (
+            <img
+              key={src}
+              alt=""
+              className={styles.heroBannerPhoto}
+              src={src}
+              style={
+                {
+                  animationDelay: `${index * 4}s`,
+                  animationDuration: `${Math.max(heroBannerImages.length, 1) * 4}s`,
+                } as CSSProperties
+              }
+            />
+          ))}
+        </div>
         <span className={styles.heroAurora} aria-hidden="true" />
         <span className={styles.heroGrid} aria-hidden="true" />
         <div className={styles.heroContent}>

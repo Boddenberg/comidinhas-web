@@ -223,6 +223,54 @@
   position: relative;
 }
 
+.heroBannerPhotos {
+  background: #14245b;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.heroBannerPhotos::after {
+  background:
+    linear-gradient(90deg, rgba(11, 18, 44, 0.88) 0%, rgba(24, 32, 81, 0.7) 48%, rgba(24, 32, 81, 0.28) 100%),
+    linear-gradient(0deg, rgba(15, 23, 42, 0.34), rgba(15, 23, 42, 0.1));
+  content: '';
+  inset: 0;
+  position: absolute;
+}
+
+.heroBannerPhoto {
+  animation: heroBannerFade 40s infinite;
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  position: absolute;
+  transform: scale(1.04);
+  width: 100%;
+}
+
+.heroBannerPhoto:first-child {
+  opacity: 1;
+}
+
+@keyframes heroBannerFade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  5%,
+  18% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0;
+  }
+}
+
 .heroAurora {
   background: var(--gradient-aurora);
   filter: blur(32px);
@@ -230,8 +278,8 @@
   opacity: 0.85;
   pointer-events: none;
   position: absolute;
-  z-index: 0;
   animation: auroraShift 16s ease-in-out infinite;
+  z-index: 1;
 }
 
 @keyframes auroraShift {
@@ -253,7 +301,7 @@
   opacity: 0.6;
   pointer-events: none;
   position: absolute;
-  z-index: 0;
+  z-index: 2;
 }
 
 .heroContent {
@@ -262,7 +310,7 @@
   gap: 1.2rem;
   max-width: 38rem;
   position: relative;
-  z-index: 1;
+  z-index: 3;
 }
 
 .heroEyebrow {
