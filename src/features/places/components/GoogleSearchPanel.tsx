@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import { useAuth } from '@/features/auth/AuthContext'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
+import { AiPickReveal } from './AiPickReveal'
 import { StatusSwitcher } from './StatusSwitcher'
 import {
   autocompletePlaces,
@@ -23,6 +24,10 @@ type GoogleSearchPanelProps = {
   initialPlaceId?: string
   initialQuery?: string
   onSelectionChange?: (hasSelection: boolean) => void
+  isAiPick?: boolean
+  aiMotivo?: string | null
+  onTryAgain?: () => void
+  onClose?: () => void
 }
 
 type GalleryPhoto = {
@@ -151,8 +156,12 @@ function formatOpenNow(openNow?: boolean | null) {
 export function GoogleSearchPanel({
   initialPlaceId,
   initialQuery = '',
+  isAiPick = false,
+  aiMotivo,
   onSaved,
   onSelectionChange,
+  onTryAgain,
+  onClose,
 }: GoogleSearchPanelProps) {
   const { grupo, perfil } = useAuth()
   const [query, setQuery] = useState(initialQuery)
@@ -396,8 +405,60 @@ export function GoogleSearchPanel({
     }
   }
 
+  async function handleAiQuickSave() {
+    if (!selected || !grupo) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const saved = await saveGooglePlace(grupo.id, {
+        place_id: selected.place_id,
+        status: 'quero_ir',
+        is_favorite: false,
+        added_by_profile_id: perfil?.id,
+      })
+      const hydrated = await getPlace(saved.id)
+      onSaved(hydrated)
+    } catch (err: unknown) {
+      setSaveError(getErrorMessage(err, 'Não foi possível salvar agora.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (isAiPick && selected) {
+    return (
+      <AiPickReveal
+        detail={selected}
+        motivo={aiMotivo}
+        onClose={onClose ?? (() => undefined)}
+        onSave={handleAiQuickSave}
+        onTryAgain={onTryAgain ? () => {
+          onClose?.()
+          onTryAgain?.()
+        } : undefined}
+        saveError={saveError}
+        saving={saving}
+      />
+    )
+  }
+
   if (!selected) {
     if (detailLoading || pendingPlaceId) {
+      if (isAiPick) {
+        return (
+          <div className={styles.aiPickLoading} aria-live="polite">
+            <span className={styles.aiPickLoadingHalo} aria-hidden="true" />
+            <span className={styles.aiPickLoadingIcon}>
+              <Icon name="sparkles" size={26} />
+            </span>
+            <div>
+              <strong>A IA está revelando a escolha…</strong>
+              <p>Buscando fotos, endereço e detalhes do Google Maps.</p>
+            </div>
+          </div>
+        )
+      }
+
       return (
         <div className={styles.placeLoading}>
           <span className={styles.placeLoadingIcon}>

@@ -459,9 +459,15 @@ export function HomePage() {
         openAddPlace({
           initialMode: 'google',
           initialQuery: recommendationName,
+          isAiPick: true,
+          aiMotivo:
+            firstRecommendation?.motivo || 'A IA escolheu este nome. Confirme o resultado no Google Maps antes de salvar.',
           subtitleOverride:
             firstRecommendation?.motivo || 'A IA escolheu este nome. Confirme o resultado no Google Maps antes de salvar.',
           titleOverride: 'Escolha da IA',
+          onTryAgain: () => {
+            void handleAiDecide()
+          },
         })
         return
       }
@@ -469,8 +475,13 @@ export function HomePage() {
       openAddPlace({
         initialMode: 'google',
         initialPlaceId: googlePlaceId,
+        isAiPick: true,
+        aiMotivo: recommendation?.motivo || 'A IA bateu seus critérios e elegeu este lugar para o casal.',
         subtitleOverride: recommendation?.motivo || 'Confira os detalhes antes de adicionar ao casal.',
         titleOverride: 'Escolha da IA',
+        onTryAgain: () => {
+          void handleAiDecide()
+        },
       })
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error, 'Não foi possível decidir um restaurante agora.')
@@ -486,6 +497,9 @@ export function HomePage() {
           subtitleOverride:
             'A IA demorou para responder, então deixei uma busca pronta no Google Maps com os filtros escolhidos.',
           titleOverride: 'Escolha da IA',
+          onTryAgain: () => {
+            void handleAiDecide()
+          },
         })
         return
       }

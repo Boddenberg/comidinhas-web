@@ -13,20 +13,27 @@ type AddPlaceModalProps = {
   initialMode?: 'google' | 'manual'
   titleOverride?: string
   subtitleOverride?: string
+  isAiPick?: boolean
+  aiMotivo?: string | null
+  onTryAgain?: () => void
 }
 
 export function AddPlaceModal({
   initialMode = 'google',
   initialPlaceId,
   initialQuery = '',
+  isAiPick = false,
+  aiMotivo,
   onClose,
   onCreated,
+  onTryAgain,
   subtitleOverride,
   titleOverride,
 }: AddPlaceModalProps) {
   const [mode, setMode] = useState<'google' | 'manual'>(initialMode)
   const [hasSelectedGooglePlace, setHasSelectedGooglePlace] = useState(Boolean(initialPlaceId))
   const isConfirmingGooglePlace = mode === 'google' && hasSelectedGooglePlace
+  const aiRevealActive = isAiPick && mode === 'google'
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -50,45 +57,47 @@ export function AddPlaceModal({
       <div
         aria-labelledby="add-place-title"
         aria-modal="true"
-        className={styles.modal}
+        className={`${styles.modal} ${aiRevealActive ? styles.modalAi : ''}`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
       >
-        <header className={styles.modalHeader}>
-          <div className={styles.modalTitleRow}>
-            <span className={styles.modalMapBadge} aria-hidden="true">
-              <img alt="" src="/btn-google-maps.png" />
-            </span>
-            <div>
-              <h2 id="add-place-title" className={styles.modalTitle}>
-                {titleOverride ??
-                  (isConfirmingGooglePlace
-                    ? 'É esse lugar?'
-                    : mode === 'google'
-                      ? 'Encontrar restaurante'
-                      : 'Adicionar lugar')}
-              </h2>
-              <p className={styles.modalSubtitle}>
-                {subtitleOverride ??
-                  (isConfirmingGooglePlace
-                    ? 'Confira os detalhes antes de adicionar ao casal.'
-                    : mode === 'google'
-                      ? 'Busque no Google Maps e confirme antes de salvar.'
-                      : 'Cadastre manualmente quando o Google Maps não encontrar.')}
-              </p>
+        {!aiRevealActive ? (
+          <header className={styles.modalHeader}>
+            <div className={styles.modalTitleRow}>
+              <span className={styles.modalMapBadge} aria-hidden="true">
+                <img alt="" src="/btn-google-maps.png" />
+              </span>
+              <div>
+                <h2 id="add-place-title" className={styles.modalTitle}>
+                  {titleOverride ??
+                    (isConfirmingGooglePlace
+                      ? 'É esse lugar?'
+                      : mode === 'google'
+                        ? 'Encontrar restaurante'
+                        : 'Adicionar lugar')}
+                </h2>
+                <p className={styles.modalSubtitle}>
+                  {subtitleOverride ??
+                    (isConfirmingGooglePlace
+                      ? 'Confira os detalhes antes de adicionar ao casal.'
+                      : mode === 'google'
+                        ? 'Busque no Google Maps e confirme antes de salvar.'
+                        : 'Cadastre manualmente quando o Google Maps não encontrar.')}
+                </p>
+              </div>
             </div>
-          </div>
-          <button
-            aria-label="Fechar"
-            className={styles.closeButton}
-            onClick={onClose}
-            type="button"
-          >
-            <Icon name="x" size={18} />
-          </button>
-        </header>
+            <button
+              aria-label="Fechar"
+              className={styles.closeButton}
+              onClick={onClose}
+              type="button"
+            >
+              <Icon name="x" size={18} />
+            </button>
+          </header>
+        ) : null}
 
-        {!isConfirmingGooglePlace ? (
+        {!isConfirmingGooglePlace && !aiRevealActive ? (
           <div className={styles.modeRow} role="tablist">
             <button
               aria-selected={mode === 'google'}
@@ -111,13 +120,17 @@ export function AddPlaceModal({
           </div>
         ) : null}
 
-        <div className={styles.modalBody}>
+        <div className={`${styles.modalBody} ${aiRevealActive ? styles.modalBodyAi : ''}`}>
           {mode === 'google' ? (
             <GoogleSearchPanel
               initialPlaceId={initialPlaceId}
               initialQuery={initialQuery}
+              isAiPick={isAiPick}
+              aiMotivo={aiMotivo ?? subtitleOverride ?? null}
+              onClose={onClose}
               onSaved={onCreated}
               onSelectionChange={setHasSelectedGooglePlace}
+              onTryAgain={onTryAgain}
             />
           ) : (
             <ManualPlaceForm onSaved={onCreated} />
