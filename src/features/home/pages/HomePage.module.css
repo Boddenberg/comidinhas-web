@@ -549,6 +549,7 @@
   padding: 1.5rem;
   position: relative;
   scroll-margin-top: 1.5rem;
+  z-index: 30;
 }
 
 .tasteSection::before {
@@ -610,6 +611,10 @@
   --ai-chip-3: #e5e7eb;
   --ai-chip-4: #d1d5db;
   position: relative;
+}
+
+.aiMenuOpen {
+  z-index: 40;
 }
 
 .aiMenu_purple {
@@ -750,7 +755,7 @@
   position: absolute;
   right: 0;
   top: calc(100% + 0.4rem);
-  z-index: 20;
+  z-index: 50;
 }
 
 .aiOptionChip {
@@ -895,6 +900,8 @@
   flex-direction: column;
   gap: 1.1rem;
   padding: 1.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .suggestHeader {
