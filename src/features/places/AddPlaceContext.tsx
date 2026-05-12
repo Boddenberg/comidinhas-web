@@ -12,8 +12,9 @@ import type { Place } from './types'
 
 type OpenOptions = {
   initialQuery?: string
-  initialMode?: 'google' | 'manual'
+  initialMode?: 'base' | 'manual' | 'google'
   initialPlaceId?: string
+  initialBaseRestaurantId?: string
   titleOverride?: string
   subtitleOverride?: string
   isAiPick?: boolean
@@ -69,7 +70,8 @@ export function AddPlaceProvider({ children }: ProviderProps) {
       {children}
       {isOpen ? (
         <AddPlaceModal
-          initialMode={options.initialMode ?? 'google'}
+          initialMode={options.initialMode ?? 'base'}
+          initialBaseRestaurantId={options.initialBaseRestaurantId}
           initialPlaceId={options.initialPlaceId}
           initialQuery={options.initialQuery ?? ''}
           isAiPick={options.isAiPick}

@@ -63,6 +63,44 @@ export type Place = {
   photos: PlacePhoto[]
 }
 
+export type RestaurantBaseItem = {
+  id: string
+  nome: string
+  categoria_id: string
+  categoria: string
+  tipo: string | null
+  endereco: string | null
+  bairro: string | null
+  cidade: string
+  distincao: string | null
+  descricao: string | null
+  fonte_chunk: string | null
+  markdown?: string | null
+  termos_busca?: string[]
+}
+
+export type RestaurantBaseResult = {
+  restaurante: RestaurantBaseItem
+  score: number
+  trechos: string[]
+}
+
+export type RestaurantBaseSearchResponse = {
+  query: string
+  total: number
+  items: RestaurantBaseResult[]
+  versao: string
+  cidade: string
+}
+
+export type SaveBaseRestaurantPayload = {
+  restaurante_id: string
+  status?: PlaceStatus
+  is_favorite?: boolean
+  notes?: string
+  added_by_profile_id?: string
+}
+
 /** Raw BFF response shape (pt). */
 export type LugarResponse = {
   id: string

@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Icon } from '@/shared/ui/Icon/Icon'
-import { GoogleSearchPanel } from './GoogleSearchPanel'
+import { KnowledgeBaseSearchPanel } from './KnowledgeBaseSearchPanel'
 import { ManualPlaceForm } from './ManualPlaceForm'
 import type { Place } from '../types'
 import styles from './AddPlace.module.css'
+
+type AddPlaceMode = 'base' | 'manual'
 
 type AddPlaceModalProps = {
   onClose: () => void
   onCreated: (place: Place) => void
   initialPlaceId?: string
+  initialBaseRestaurantId?: string
   initialQuery?: string
-  initialMode?: 'google' | 'manual'
+  initialMode?: AddPlaceMode | 'google'
   titleOverride?: string
   subtitleOverride?: string
   isAiPick?: boolean
@@ -19,7 +22,8 @@ type AddPlaceModalProps = {
 }
 
 export function AddPlaceModal({
-  initialMode = 'google',
+  initialMode = 'base',
+  initialBaseRestaurantId,
   initialPlaceId,
   initialQuery = '',
   isAiPick = false,
@@ -30,10 +34,13 @@ export function AddPlaceModal({
   subtitleOverride,
   titleOverride,
 }: AddPlaceModalProps) {
-  const [mode, setMode] = useState<'google' | 'manual'>(initialMode)
-  const [hasSelectedGooglePlace, setHasSelectedGooglePlace] = useState(Boolean(initialPlaceId))
-  const isConfirmingGooglePlace = mode === 'google' && hasSelectedGooglePlace
-  const aiRevealActive = isAiPick && mode === 'google'
+  const normalizedInitialMode = initialMode === 'google' ? 'base' : initialMode
+  const [mode, setMode] = useState<AddPlaceMode>(normalizedInitialMode)
+  const [hasSelectedBasePlace, setHasSelectedBasePlace] = useState(
+    Boolean(initialBaseRestaurantId ?? initialPlaceId),
+  )
+  const isConfirmingBasePlace = mode === 'base' && hasSelectedBasePlace
+  const aiRevealActive = isAiPick && mode === 'base'
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -47,8 +54,8 @@ export function AddPlaceModal({
     }
   }, [onClose])
 
-  function handleModeChange(nextMode: 'google' | 'manual') {
-    setHasSelectedGooglePlace(false)
+  function handleModeChange(nextMode: AddPlaceMode) {
+    setHasSelectedBasePlace(false)
     setMode(nextMode)
   }
 
@@ -65,24 +72,24 @@ export function AddPlaceModal({
           <header className={styles.modalHeader}>
             <div className={styles.modalTitleRow}>
               <span className={styles.modalMapBadge} aria-hidden="true">
-                <img alt="" src="/btn-google-maps.png" />
+                <Icon name="book-open" size={28} />
               </span>
               <div>
                 <h2 id="add-place-title" className={styles.modalTitle}>
                   {titleOverride ??
-                    (isConfirmingGooglePlace
+                    (isConfirmingBasePlace
                       ? 'É esse lugar?'
-                      : mode === 'google'
+                      : mode === 'base'
                         ? 'Encontrar restaurante'
                         : 'Adicionar lugar')}
                 </h2>
                 <p className={styles.modalSubtitle}>
                   {subtitleOverride ??
-                    (isConfirmingGooglePlace
+                    (isConfirmingBasePlace
                       ? 'Confira os detalhes antes de adicionar ao casal.'
-                      : mode === 'google'
-                        ? 'Busque no Google Maps e confirme antes de salvar.'
-                        : 'Cadastre manualmente quando o Google Maps não encontrar.')}
+                      : mode === 'base'
+                        ? 'Busque na base própria do Comidinhas e confirme antes de salvar.'
+                        : 'Cadastre manualmente quando a base não tiver esse lugar.')}
                 </p>
               </div>
             </div>
@@ -97,16 +104,16 @@ export function AddPlaceModal({
           </header>
         ) : null}
 
-        {!isConfirmingGooglePlace && !aiRevealActive ? (
+        {!isConfirmingBasePlace && !aiRevealActive ? (
           <div className={styles.modeRow} role="tablist">
             <button
-              aria-selected={mode === 'google'}
-              className={`${styles.modeTab} ${mode === 'google' ? styles.modeActive : ''}`}
-              onClick={() => handleModeChange('google')}
+              aria-selected={mode === 'base'}
+              className={`${styles.modeTab} ${mode === 'base' ? styles.modeActive : ''}`}
+              onClick={() => handleModeChange('base')}
               role="tab"
               type="button"
             >
-              <Icon name="search" size={15} /> Google Maps
+              <Icon name="book-open" size={15} /> Base
             </button>
             <button
               aria-selected={mode === 'manual'}
@@ -121,15 +128,15 @@ export function AddPlaceModal({
         ) : null}
 
         <div className={`${styles.modalBody} ${aiRevealActive ? styles.modalBodyAi : ''}`}>
-          {mode === 'google' ? (
-            <GoogleSearchPanel
-              initialPlaceId={initialPlaceId}
+          {mode === 'base' ? (
+            <KnowledgeBaseSearchPanel
+              initialBaseRestaurantId={initialBaseRestaurantId ?? initialPlaceId}
               initialQuery={initialQuery}
               isAiPick={isAiPick}
               aiMotivo={aiMotivo ?? subtitleOverride ?? null}
               onClose={onClose}
               onSaved={onCreated}
-              onSelectionChange={setHasSelectedGooglePlace}
+              onSelectionChange={setHasSelectedBasePlace}
               onTryAgain={onTryAgain}
             />
           ) : (

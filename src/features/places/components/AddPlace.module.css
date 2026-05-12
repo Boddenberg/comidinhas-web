@@ -150,6 +150,75 @@
   margin-top: 0.35rem;
 }
 
+.aiBasePick {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(47, 109, 240, 0.1), rgba(245, 158, 11, 0.11)),
+    rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 1.5rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-height: 24rem;
+  padding: 2.4rem 1.6rem 1.45rem;
+  position: relative;
+  text-align: center;
+}
+
+.aiBasePick .closeButton {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+}
+
+.aiBasePick .sourceChip {
+  background: #ffffff;
+}
+
+.aiBasePick h3 {
+  color: #13213a;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.55rem);
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.02;
+  margin: 0;
+  max-width: 14ch;
+}
+
+.aiBasePick p {
+  color: #526173;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 40rem;
+}
+
+.aiBasePick .detailMeta {
+  justify-content: center;
+}
+
+.aiBasePick .confirmActions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 34rem;
+  width: 100%;
+}
+
+.aiBaseIcon {
+  align-items: center;
+  background: linear-gradient(135deg, #2f6df0, #ff7564);
+  border-radius: 1.1rem;
+  box-shadow: 0 18px 34px rgba(47, 109, 240, 0.22);
+  color: #ffffff;
+  display: inline-flex;
+  height: 3.75rem;
+  justify-content: center;
+  width: 3.75rem;
+}
+
 .modalHeader {
   align-items: center;
   display: flex;
@@ -462,6 +531,40 @@
 
 .heroPhoto:hover img {
   transform: scale(1.015);
+}
+
+.knowledgePlaceholder {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  background:
+    linear-gradient(135deg, rgba(47, 109, 240, 0.11), rgba(255, 119, 94, 0.1)),
+    #eef3fb;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 1.38rem;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
+  color: #2f6df0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+  max-height: 21.25rem;
+  min-height: 18.75rem;
+  overflow: hidden;
+}
+
+.knowledgePlaceholder strong {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.86);
+  border-radius: 999px;
+  color: #13213a;
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 850;
+  height: 6.8rem;
+  justify-content: center;
+  text-transform: uppercase;
+  width: 6.8rem;
 }
 
 .heroPhotoShade {
@@ -835,6 +938,18 @@
   letter-spacing: 0;
   line-height: 1.25;
   margin: 0;
+}
+
+.descriptionBox {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(31, 41, 55, 0.07);
+  border-radius: 1rem;
+  color: #4a5870;
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.52;
+  margin: 0;
+  padding: 0.85rem 0.95rem;
 }
 
 .favoriteRow {
