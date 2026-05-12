@@ -4,12 +4,11 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { recommendRestaurants } from '@/features/chat/services/chatService'
 import type { RestaurantRecommendation } from '@/features/chat/types'
 import { useAddPlace } from '@/features/places/AddPlaceContext'
-import { saveGooglePlace } from '@/features/places/services/googleMapsService'
+import { saveBaseRestaurant } from '@/features/places/services/restaurantBaseService'
 import { updatePlace } from '@/features/places/services/placesService'
 import type { Place } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { Icon } from '@/shared/ui/Icon/Icon'
-import mapPreviewImage from '../../../../imagem horizontal maps.png'
 import { fetchHome, type HomeDashboard } from '../services/homeService'
 import {
   fetchTodayRecommendations,
@@ -197,12 +196,12 @@ function buildAiDecisionMessage(selections: AiSelections) {
     `Clima: ${getAiOptionLabel('clima', selections.clima)}`,
     `Orcamento: ${getAiOptionLabel('orcamento', selections.orcamento)}`,
     `Distancia: ${getAiOptionLabel('distancia', selections.distancia)}`,
-    'Priorize resultado com Google Maps/place_id.',
+    'Priorize resultado da base_conhecimento quando o restaurante ainda nao estiver salvo.',
   ].join('\n')
 }
 
-function getAiGoogleRecommendation(recommendations: RestaurantRecommendation[]) {
-  return recommendations.find((option) => option.restaurante.google_place_id)
+function getAiBaseRecommendation(recommendations: RestaurantRecommendation[]) {
+  return recommendations.find((option) => option.restaurante.base_restaurante_id)
 }
 
 function getRecommendationName(recommendation: RestaurantRecommendation | undefined) {
@@ -214,7 +213,7 @@ function isOpenAiTimeout(message: string) {
   return normalized.includes('timeout') && normalized.includes('openai')
 }
 
-function buildFallbackGoogleQuery(
+function buildFallbackBaseQuery(
   selections: AiSelections,
   city: string | null | undefined,
   favoritePlaceName?: string,
@@ -497,15 +496,16 @@ export function HomePage() {
           cidade: perfil?.cidade ?? 'São Paulo',
           raio_metros: 8000,
         },
-        permitir_google: true,
+        permitir_base_conhecimento: true,
+        permitir_google: false,
         max_resultados: 1,
         max_candidatos_internos: 24,
-        max_candidatos_google: 4,
+        max_candidatos_base_conhecimento: 12,
       })
-      const recommendation = getAiGoogleRecommendation(response.opcoes ?? [])
-      const googlePlaceId = recommendation?.restaurante.google_place_id
+      const recommendation = getAiBaseRecommendation(response.opcoes ?? [])
+      const baseRestaurantId = recommendation?.restaurante.base_restaurante_id
 
-      if (!googlePlaceId) {
+      if (!baseRestaurantId) {
         const firstRecommendation = response.opcoes?.[0]
         const recommendationName = getRecommendationName(firstRecommendation)
 
@@ -514,13 +514,13 @@ export function HomePage() {
         }
 
         openAddPlace({
-          initialMode: 'google',
+          initialMode: 'base',
           initialQuery: recommendationName,
           isAiPick: true,
           aiMotivo:
-            firstRecommendation?.motivo || 'A IA escolheu este nome. Confirme o resultado no Google Maps antes de salvar.',
+            firstRecommendation?.motivo || 'A IA escolheu este nome. Confirme o resultado na base antes de salvar.',
           subtitleOverride:
-            firstRecommendation?.motivo || 'A IA escolheu este nome. Confirme o resultado no Google Maps antes de salvar.',
+            firstRecommendation?.motivo || 'A IA escolheu este nome. Confirme o resultado na base antes de salvar.',
           titleOverride: 'Escolha da IA',
           onTryAgain: () => {
             void handleAiDecide()
@@ -530,8 +530,9 @@ export function HomePage() {
       }
 
       openAddPlace({
-        initialMode: 'google',
-        initialPlaceId: googlePlaceId,
+        initialMode: 'base',
+        initialBaseRestaurantId: baseRestaurantId,
+        initialQuery: recommendation?.restaurante.nome,
         isAiPick: true,
         aiMotivo: recommendation?.motivo || 'A IA bateu seus critérios e elegeu este lugar para o casal.',
         subtitleOverride: recommendation?.motivo || 'Confira os detalhes antes de adicionar ao casal.',
@@ -545,14 +546,14 @@ export function HomePage() {
 
       if (isOpenAiTimeout(errorMessage)) {
         openAddPlace({
-          initialMode: 'google',
-          initialQuery: buildFallbackGoogleQuery(
+          initialMode: 'base',
+          initialQuery: buildFallbackBaseQuery(
             aiSelections,
             perfil?.cidade,
             home?.top_favorites[0]?.name,
           ),
           subtitleOverride:
-            'A IA demorou para responder, então deixei uma busca pronta no Google Maps com os filtros escolhidos.',
+            'A IA demorou para responder, então deixei uma busca pronta na base com os filtros escolhidos.',
           titleOverride: 'Escolha da IA',
           onTryAgain: () => {
             void handleAiDecide()
@@ -590,13 +591,13 @@ export function HomePage() {
     setFavoriteError(null)
 
     try {
-      const googlePlaceId = (place as Partial<TodayRecommendation>).google_place_id ?? null
-      const shouldSaveFromGoogle = !isSavedPlaceId(place.id) && !place.is_favorite
-      const updated = shouldSaveFromGoogle
-        ? await saveGooglePlace(grupo.id, {
+      const baseRestaurantId = (place as Partial<TodayRecommendation>).base_restaurante_id ?? null
+      const shouldSaveFromBase = Boolean(baseRestaurantId) && !isSavedPlaceId(place.id) && !place.is_favorite
+      const updated = shouldSaveFromBase
+        ? await saveBaseRestaurant(grupo.id, {
             added_by_profile_id: perfil?.id,
             is_favorite: true,
-            place_id: googlePlaceId || place.id,
+            restaurante_id: baseRestaurantId || place.id,
             status: place.status ?? 'quero_ir',
           })
         : await updatePlace(place.id, { is_favorite: !place.is_favorite })
@@ -604,7 +605,7 @@ export function HomePage() {
       setTodaySuggestions((current) =>
         current.map((item) =>
           item.id === place.id || item.id === updated.id
-            ? { ...item, ...updated, google_place_id: googlePlaceId || item.google_place_id }
+            ? { ...item, ...updated, base_restaurante_id: baseRestaurantId || item.base_restaurante_id }
             : item,
         ),
       )
@@ -954,18 +955,12 @@ export function HomePage() {
               <Icon name="compass" size={20} />
             </span>
             <span className={styles.shortcutBody}>
-              <strong>Por perto</strong>
-              <span>Restaurantes ao redor de vocês</span>
+              <strong>Explorar base</strong>
+              <span>Restaurantes curados de Sao Paulo</span>
             </span>
             <span className={styles.shortcutArrow}>
               <Icon name="arrow-right" size={14} />
             </span>
-            <img
-              alt=""
-              aria-hidden="true"
-              className={styles.shortcutBackdrop}
-              src={mapPreviewImage}
-            />
           </button>
 
           <button

@@ -26,7 +26,7 @@ export function ChatComposer({
           <h2 className={styles.title}>Pedir recomendacao</h2>
           <p className={styles.description}>
             Conte o momento, o tipo de comida, restricoes ou bairro. A IA busca lugares salvos e
-            pode trazer novas opcoes do Google.
+            pode trazer novas opcoes da base propria.
           </p>
         </div>
 

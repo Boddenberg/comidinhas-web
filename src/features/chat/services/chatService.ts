@@ -65,10 +65,11 @@ export async function sendChatMessage(
     mensagem: buildConversationMessage(payload),
     perfil_id: options.perfilId,
     localizacao: options.localizacao,
-    permitir_google: options.permitirGoogle ?? true,
+    permitir_base_conhecimento: true,
+    permitir_google: options.permitirGoogle ?? false,
     max_resultados: 6,
     max_candidatos_internos: 80,
-    max_candidatos_google: 10,
+    max_candidatos_base_conhecimento: 24,
   })
 
   return {

@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 import { useAuth } from '@/features/auth/AuthContext'
-import { saveGooglePlace } from '@/features/places/services/googleMapsService'
+import { saveBaseRestaurant } from '@/features/places/services/restaurantBaseService'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { FeedbackState } from '@/shared/ui/FeedbackState/FeedbackState'
 import { PageHeader } from '@/shared/ui/PageHeader/PageHeader'
@@ -24,9 +24,9 @@ const quickPrompts = [
 ]
 
 const helpItems = [
-  'A IA cruza seus lugares salvos com opcoes externas.',
+  'A IA cruza seus lugares salvos com a base propria.',
   'Se faltar detalhe, ela pergunta antes de recomendar.',
-  'Opcoes do Google podem ser salvas direto no Comidinhas.',
+  'Opcoes da base podem ser salvas direto no Comidinhas.',
 ]
 
 function createMessageId() {
@@ -51,7 +51,7 @@ async function getBrowserLocation(): Promise<{ latitude: number; longitude: numb
 
 function recommendationToInternalRestaurant(
   restaurante: RecommendedRestaurant,
-  saved: Awaited<ReturnType<typeof saveGooglePlace>>,
+  saved: Awaited<ReturnType<typeof saveBaseRestaurant>>,
 ): RecommendedRestaurant {
   return {
     ...restaurante,
@@ -134,7 +134,7 @@ export function ChatPage() {
         {
           localizacao: await buildLocation(),
           perfilId: perfil?.id,
-          permitirGoogle: true,
+          permitirGoogle: false,
         },
       )
 
@@ -158,17 +158,17 @@ export function ChatPage() {
     }
   }
 
-  async function handleSaveGoogleRecommendation(restaurante: RecommendedRestaurant) {
-    if (!grupo || !restaurante.google_place_id) return
+  async function handleSaveBaseRecommendation(restaurante: RecommendedRestaurant) {
+    if (!grupo || !restaurante.base_restaurante_id) return
 
     setErrorMessage(null)
     setSavingRecommendationId(restaurante.candidato_id)
     try {
-      const saved = await saveGooglePlace(grupo.id, {
+      const saved = await saveBaseRestaurant(grupo.id, {
         added_by_profile_id: perfil?.id,
         is_favorite: false,
         notes: 'Salvo a partir da recomendacao da IA',
-        place_id: restaurante.google_place_id,
+        restaurante_id: restaurante.base_restaurante_id,
         status: 'quero_ir',
       })
 
@@ -201,7 +201,7 @@ export function ChatPage() {
     <section className={styles.page}>
       <PageHeader
         action={<span className={styles.pageBadge}>Busca com IA</span>}
-        description="Diga o que voces querem comer e receba opcoes salvas no perfil ativo ou descobertas no Google."
+        description="Diga o que voces querem comer e receba opcoes salvas no perfil ativo ou descobertas na base propria."
         eyebrow="IA recomenda"
         title="Converse com a IA para escolher restaurantes."
       />
@@ -241,7 +241,7 @@ export function ChatPage() {
 
             <div className={styles.panelTags}>
               <span className={styles.panelTag}>Comidinhas</span>
-              <span className={styles.panelTag}>Google quando fizer sentido</span>
+              <span className={styles.panelTag}>Base propria</span>
             </div>
           </div>
 
@@ -256,7 +256,7 @@ export function ChatPage() {
           <ChatMessageList
             isLoading={isSubmitting}
             messages={messages}
-            onSaveGoogleRecommendation={handleSaveGoogleRecommendation}
+            onSaveBaseRecommendation={handleSaveBaseRecommendation}
             savingRecommendationId={savingRecommendationId}
           />
         </section>

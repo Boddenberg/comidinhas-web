@@ -25,19 +25,22 @@ export type RecommendRequest = {
   mensagem: string
   perfil_id?: string
   localizacao?: RecommendationLocation
+  permitir_base_conhecimento?: boolean
   permitir_google?: boolean
   max_resultados?: number
   max_candidatos_internos?: number
+  max_candidatos_base_conhecimento?: number
   max_candidatos_google?: number
 }
 
-export type RecommendationOrigin = 'comidinhas' | 'google'
+export type RecommendationOrigin = 'comidinhas' | 'base_conhecimento' | 'google'
 
 export type RecommendedRestaurant = {
   candidato_id: string
   origem: RecommendationOrigin
   lugar_id: string | null
   google_place_id: string | null
+  base_restaurante_id: string | null
   nome: string
   categoria: string | null
   bairro: string | null
@@ -57,6 +60,8 @@ export type RecommendedRestaurant = {
   google_maps_uri: string | null
   website_uri: string | null
   telefone: string | null
+  descricao?: string | null
+  fonte_chunk?: string | null
 }
 
 export type RestaurantRecommendation = {

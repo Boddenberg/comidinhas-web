@@ -7,7 +7,7 @@ import styles from './ChatMessageList.module.css'
 interface ChatMessageListProps {
   isLoading: boolean
   messages: ChatConversationMessage[]
-  onSaveGoogleRecommendation?: (restaurante: RecommendedRestaurant) => void
+  onSaveBaseRecommendation?: (restaurante: RecommendedRestaurant) => void
   savingRecommendationId?: string | null
 }
 
@@ -31,7 +31,7 @@ function getLocation(restaurante: RecommendedRestaurant) {
 export function ChatMessageList({
   isLoading,
   messages,
-  onSaveGoogleRecommendation,
+  onSaveBaseRecommendation,
   savingRecommendationId,
 }: ChatMessageListProps) {
   if (messages.length === 0) {
@@ -71,9 +71,9 @@ export function ChatMessageList({
                 const location = getLocation(restaurante)
                 const isSaving = savingRecommendationId === restaurante.candidato_id
                 const canSave =
-                  restaurante.origem === 'google' &&
-                  Boolean(restaurante.google_place_id) &&
-                  Boolean(onSaveGoogleRecommendation)
+                  restaurante.origem === 'base_conhecimento' &&
+                  Boolean(restaurante.base_restaurante_id) &&
+                  Boolean(onSaveBaseRecommendation)
 
                 return (
                   <article className={styles.recommendationCard} key={restaurante.candidato_id}>
@@ -92,7 +92,7 @@ export function ChatMessageList({
                           <span>{[restaurante.categoria, location].filter(Boolean).join(' - ')}</span>
                         </div>
                         <span className={styles.originBadge} data-origin={restaurante.origem}>
-                          {restaurante.origem === 'google' ? 'Google' : 'Comidinhas'}
+                          {restaurante.origem === 'base_conhecimento' ? 'Base' : 'Comidinhas'}
                         </span>
                       </header>
 
@@ -128,7 +128,7 @@ export function ChatMessageList({
                         {canSave ? (
                           <button
                             disabled={isSaving}
-                            onClick={() => onSaveGoogleRecommendation?.(restaurante)}
+                            onClick={() => onSaveBaseRecommendation?.(restaurante)}
                             type="button"
                           >
                             {isSaving ? 'Salvando...' : 'Salvar no Comidinhas'}
