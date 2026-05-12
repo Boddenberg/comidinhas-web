@@ -1,231 +1,202 @@
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useAuth } from '@/features/auth/AuthContext'
+import {
+  saveBaseRestaurant,
+  searchRestaurantBase,
+} from '@/features/places/services/restaurantBaseService'
+import type { RestaurantBaseResult } from '@/features/places/types'
 import { getErrorMessage } from '@/shared/lib/getErrorMessage'
 import { FeedbackState } from '@/shared/ui/FeedbackState/FeedbackState'
+import { Icon } from '@/shared/ui/Icon/Icon'
 import { PageHeader } from '@/shared/ui/PageHeader/PageHeader'
-import { NearbyRestaurantsForm } from '../components/NearbyRestaurantsForm'
-import { RestaurantCard } from '../components/RestaurantCard'
-import { searchNearbyRestaurants } from '../services/googleMapsService'
-import type {
-  NearbyRestaurantsFilters,
-  NearbyRestaurantsRequest,
-  RankPreference,
-  RestaurantPlace,
-} from '../types'
 import styles from './NearbyRestaurantsPage.module.css'
 
-const initialFilters: NearbyRestaurantsFilters = {
-  latitude: '-23.55052',
-  longitude: '-46.633308',
-  maxResults: '5',
-  radiusMeters: '1500',
-  rankPreference: 'POPULARITY',
-}
-
-const presets: Array<{
-  label: string
-  patch: Partial<NearbyRestaurantsFilters>
-}> = [
-  {
-    label: 'Centro SP',
-    patch: {
-      latitude: '-23.55052',
-      longitude: '-46.633308',
-      maxResults: '5',
-      radiusMeters: '1500',
-      rankPreference: 'POPULARITY',
-    },
-  },
-  {
-    label: 'Mais perto',
-    patch: {
-      maxResults: '4',
-      radiusMeters: '900',
-      rankPreference: 'DISTANCE',
-    },
-  },
-  {
-    label: 'Mais opcoes',
-    patch: {
-      maxResults: '8',
-      radiusMeters: '2500',
-      rankPreference: 'POPULARITY',
-    },
-  },
-  {
-    label: 'Popular agora',
-    patch: {
-      maxResults: '6',
-      radiusMeters: '1800',
-      rankPreference: 'POPULARITY',
-    },
-  },
+const quickSearches = [
+  'japonesa pinheiros',
+  'italiana jardins',
+  'bar vinho',
+  'cafe brunch',
+  'date romantico',
+  'vegetariano',
 ]
 
-function getCurrentPosition() {
-  return new Promise<GeolocationPosition>((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 10000,
-    })
-  })
+function getResultMeta(result: RestaurantBaseResult) {
+  const restaurant = result.restaurante
+  return [restaurant.tipo, restaurant.bairro, restaurant.cidade].filter(Boolean).join(' / ')
 }
 
-function formatRank(rankPreference: RankPreference) {
-  return rankPreference === 'POPULARITY' ? 'Popularidade' : 'Distancia'
+function getSourceLabel(result: RestaurantBaseResult) {
+  const restaurant = result.restaurante
+  return restaurant.distincao ?? restaurant.categoria
 }
 
 export function NearbyRestaurantsPage() {
-  const [filters, setFilters] = useState(initialFilters)
-  const [places, setPlaces] = useState<RestaurantPlace[]>([])
+  const { grupo, perfil } = useAuth()
+  const [query, setQuery] = useState('japonesa pinheiros')
+  const [results, setResults] = useState<RestaurantBaseResult[]>([])
   const [hasSearched, setHasSearched] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [isLocating, setIsLocating] = useState(false)
+  const [busyRestaurantId, setBusyRestaurantId] = useState<string | null>(null)
+  const [savedRestaurantIds, setSavedRestaurantIds] = useState<Set<string>>(() => new Set())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  function updateFilter<TField extends keyof NearbyRestaurantsFilters>(
-    field: TField,
-    value: NearbyRestaurantsFilters[TField],
-  ) {
-    setFilters((currentFilters) => ({
-      ...currentFilters,
-      [field]: value,
-    }))
-  }
+  const categorySummary = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          results
+            .map((item) => item.restaurante.categoria)
+            .filter((category): category is string => Boolean(category)),
+        ),
+      ).slice(0, 4),
+    [results],
+  )
 
-  function applyPreset(patch: Partial<NearbyRestaurantsFilters>) {
-    setFilters((currentFilters) => ({
-      ...currentFilters,
-      ...patch,
-    }))
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const payload: NearbyRestaurantsRequest = {
-      included_types: ['restaurant'],
-      latitude: Number(filters.latitude),
-      longitude: Number(filters.longitude),
-      max_results: Number(filters.maxResults),
-      radius_meters: Number(filters.radiusMeters),
-      rank_preference: filters.rankPreference,
-    }
-
-    if (
-      Number.isNaN(payload.latitude) ||
-      Number.isNaN(payload.longitude) ||
-      Number.isNaN(payload.radius_meters) ||
-      Number.isNaN(payload.max_results)
-    ) {
-      setErrorMessage('Preencha latitude, longitude, raio e maximo de resultados com numeros validos.')
+  async function runSearch(nextQuery = query) {
+    const trimmedQuery = nextQuery.trim()
+    if (trimmedQuery.length < 2) {
+      setErrorMessage('Digite pelo menos 2 caracteres para buscar na base.')
       return
     }
 
+    setQuery(nextQuery)
     setErrorMessage(null)
     setHasSearched(true)
     setIsLoading(true)
 
     try {
-      const response = await searchNearbyRestaurants(payload)
-      setPlaces(response.places)
+      const response = await searchRestaurantBase({
+        query: trimmedQuery,
+        max_resultados: 18,
+      })
+      setResults(response.items)
     } catch (error: unknown) {
-      setPlaces([])
-      setErrorMessage(
-        getErrorMessage(error, 'Nao foi possivel buscar restaurantes proximos agora.'),
-      )
+      setResults([])
+      setErrorMessage(getErrorMessage(error, 'Nao foi possivel buscar na base agora.'))
     } finally {
       setIsLoading(false)
     }
   }
 
-  async function handleUseCurrentLocation() {
-    if (!('geolocation' in navigator)) {
-      setErrorMessage('Seu navegador nao suporta geolocalizacao.')
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void runSearch()
+  }
+
+  function handleQuickSearch(nextQuery: string) {
+    void runSearch(nextQuery)
+  }
+
+  async function handleSave(result: RestaurantBaseResult) {
+    if (!grupo) {
+      setErrorMessage('Selecione um grupo antes de salvar restaurantes.')
       return
     }
 
+    const restaurantId = result.restaurante.id
+    setBusyRestaurantId(restaurantId)
     setErrorMessage(null)
-    setIsLocating(true)
 
     try {
-      const position = await getCurrentPosition()
-
-      setFilters((currentFilters) => ({
-        ...currentFilters,
-        latitude: position.coords.latitude.toFixed(6),
-        longitude: position.coords.longitude.toFixed(6),
-      }))
-    } catch {
-      setErrorMessage('Nao foi possivel obter sua localizacao atual.')
+      await saveBaseRestaurant(grupo.id, {
+        added_by_profile_id: perfil?.id,
+        restaurante_id: restaurantId,
+        status: 'quero_ir',
+      })
+      setSavedRestaurantIds((current) => new Set(current).add(restaurantId))
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, 'Nao foi possivel salvar esse restaurante.'))
     } finally {
-      setIsLocating(false)
+      setBusyRestaurantId(null)
     }
   }
 
   const shouldShowInitialEmpty = !hasSearched && !isLoading && !errorMessage
-  const shouldShowSearchEmpty = hasSearched && !isLoading && places.length === 0 && !errorMessage
+  const shouldShowSearchEmpty = hasSearched && !isLoading && results.length === 0 && !errorMessage
 
   return (
     <section className={styles.page}>
       <PageHeader
-        action={<span className={styles.pageBadge}>Busca local pronta</span>}
-        description="Use coordenadas reais ou a geolocalizacao do navegador para acionar a busca de restaurantes proximos com uma interface mais alinhada a um app de descoberta."
-        eyebrow="Restaurantes proximos"
-        title="Explore lugares perto de voce com uma busca mais viva e editorial."
+        action={<span className={styles.pageBadge}>Base propria</span>}
+        description="Pesquise a base curada do Comidinhas, confira os detalhes disponiveis e salve o restaurante no grupo sem depender do Google Maps."
+        eyebrow="Explorar restaurantes"
+        title="Descubra lugares direto da nossa base."
       />
 
       <section className={`surfaceCard ${styles.spotlight}`}>
         <div className={styles.spotlightCopy}>
-          <span className={styles.spotlightLabel}>Modos rapidos</span>
-          <h2 className={styles.spotlightTitle}>Alterne entre cenarios comuns sem reconfigurar tudo a cada teste.</h2>
+          <span className={styles.spotlightLabel}>Busca curada</span>
+          <h2 className={styles.spotlightTitle}>Use nome, cozinha, bairro ou clima do encontro.</h2>
         </div>
 
         <div className={styles.presetRow}>
-          {presets.map((preset) => (
+          {quickSearches.map((preset) => (
             <button
-              key={preset.label}
+              key={preset}
               className={styles.presetButton}
-              onClick={() => applyPreset(preset.patch)}
+              onClick={() => handleQuickSearch(preset)}
               type="button"
             >
-              {preset.label}
+              {preset}
             </button>
           ))}
         </div>
       </section>
 
       <div className={styles.layout}>
-        <NearbyRestaurantsForm
-          filters={filters}
-          isLoading={isLoading}
-          isLocating={isLocating}
-          onChange={updateFilter}
-          onSubmit={handleSubmit}
-          onUseCurrentLocation={handleUseCurrentLocation}
-        />
+        <form className={`surfaceCard ${styles.searchPanel}`} onSubmit={handleSubmit}>
+          <label className={styles.searchBox}>
+            <Icon name="search" size={18} />
+            <input
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Ex: arabe, Pinheiros, brunch..."
+              type="search"
+              value={query}
+            />
+          </label>
+
+          <button className={styles.searchButton} disabled={isLoading} type="submit">
+            {isLoading ? 'Buscando...' : 'Buscar na base'}
+            <Icon name="arrow-right" size={15} />
+          </button>
+
+          <div className={styles.hintRow}>
+            <span>
+              <Icon name="book-open" size={14} />
+              {results.length || '398'} restaurantes indexados
+            </span>
+            <span>
+              <Icon name="globe" size={14} />
+              Sao Paulo
+            </span>
+          </div>
+
+          {categorySummary.length > 0 ? (
+            <div className={styles.categoryRow}>
+              {categorySummary.map((category) => (
+                <span key={category} className={styles.categoryPill}>
+                  {category}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </form>
 
         <section className={`surfaceCard ${styles.resultsPanel}`}>
           <div className={styles.resultsHeader}>
             <div>
               <h2 className={styles.resultsTitle}>Resultados</h2>
               <p className={styles.resultsDescription}>
-                A lista abaixo reflete exatamente o retorno do endpoint de nearby restaurants.
+                A lista vem do endpoint de restaurantes-base e ja esta pronta para salvar no grupo.
               </p>
             </div>
 
-            {places.length > 0 ? (
+            {results.length > 0 ? (
               <span className="statusPill" data-tone="sage">
-                {places.length} lugar(es)
+                {results.length} lugar(es)
               </span>
             ) : null}
-          </div>
-
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryPill}>Raio {filters.radiusMeters} m</span>
-            <span className={styles.summaryPill}>Maximo {filters.maxResults}</span>
-            <span className={styles.summaryPill}>Rank {formatRank(filters.rankPreference)}</span>
           </div>
 
           {errorMessage ? (
@@ -238,7 +209,7 @@ export function NearbyRestaurantsPage() {
 
           {isLoading ? (
             <FeedbackState
-              description="Estamos consultando o backend e aguardando os lugares proximos."
+              description="Estamos consultando a base local e ranqueando os melhores matches."
               title="Buscando restaurantes"
               variant="loading"
             />
@@ -246,25 +217,64 @@ export function NearbyRestaurantsPage() {
 
           {shouldShowInitialEmpty ? (
             <FeedbackState
-              description="Use os filtros ao lado para iniciar a busca. Os valores iniciais apontam para a regiao central de Sao Paulo."
-              title="Pronto para procurar"
+              description="Use a busca ou os atalhos para encontrar restaurantes da base propria."
+              title="Pronto para explorar"
               variant="empty"
             />
           ) : null}
 
           {shouldShowSearchEmpty ? (
             <FeedbackState
-              description="Nenhum restaurante foi encontrado com os parametros atuais. Tente aumentar o raio ou mudar as coordenadas."
-              title="Nenhum resultado encontrado"
+              description="Nenhum restaurante encontrado. Tente uma cozinha, bairro ou nome mais amplo."
+              title="Nada encontrado"
               variant="empty"
             />
           ) : null}
 
-          {places.length > 0 && !isLoading ? (
+          {results.length > 0 && !isLoading ? (
             <div className={styles.resultsList}>
-              {places.map((place) => (
-                <RestaurantCard key={place.id} place={place} />
-              ))}
+              {results.map((result) => {
+                const restaurant = result.restaurante
+                const saved = savedRestaurantIds.has(restaurant.id)
+                const busy = busyRestaurantId === restaurant.id
+
+                return (
+                  <article className={styles.resultCard} key={restaurant.id}>
+                    <div className={styles.resultTop}>
+                      <span className={styles.sourceLine}>
+                        <Icon name="book-open" size={13} />
+                        {getSourceLabel(result)}
+                      </span>
+                      <span className={styles.scoreBadge}>{Math.round(result.score)} pts</span>
+                    </div>
+
+                    <h3 className={styles.resultName}>{restaurant.nome}</h3>
+                    <p className={styles.resultMeta}>
+                      <Icon name="pin" size={14} />
+                      {restaurant.endereco ?? getResultMeta(result)}
+                    </p>
+
+                    {restaurant.descricao ? (
+                      <p className={styles.resultDescription}>{restaurant.descricao}</p>
+                    ) : result.trechos[0] ? (
+                      <p className={styles.resultDescription}>{result.trechos[0]}</p>
+                    ) : null}
+
+                    <div className={styles.resultFooter}>
+                      <span>{getResultMeta(result) || 'Sao Paulo'}</span>
+                      <button
+                        className={saved ? styles.savedButton : styles.saveButton}
+                        disabled={busy || saved}
+                        onClick={() => void handleSave(result)}
+                        type="button"
+                      >
+                        <Icon name={saved ? 'circle-check' : 'plus'} size={15} />
+                        {saved ? 'Salvo' : busy ? 'Salvando...' : 'Salvar'}
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           ) : null}
         </section>
